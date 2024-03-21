@@ -22,7 +22,7 @@ library(hypeR)
 data(breast.TCGA) # from the mixomics package.
 mRna = data.frame(breast.TCGA$data.train$mrna)
 mRna$subtype = breast.TCGA$data.train$subtype
-Transcriptomics_data <- readr::read_csv("https://raw.githubusercontent.com/LamineTourelab/Tutorial/main/Data%20Visualization/Shiny%20App%20in%20genomics/Data/Transcriptomics%20data.csv")
+Transcriptomics_data <- readr::read_csv("https://raw.githubusercontent.com/Institut-Necker-Enfants-Malades/R-Shinydashbord/main/Data/Transcriptomics%20data.csv")
 stock.genomes <- sort(get_css_genomes())
 # ==================================================================== Options ===================================================================================================#
 options(shiny.maxRequestSize = 50*1024^2) #The maximum upload dataset size. Here at 50MB.
@@ -46,9 +46,9 @@ dashHeader = dashboardHeader(title ="INEM HUB-BIOINFO",
                                        icon("code"),
                                        title = "Source Code"),
                                      class = "dropdown"),
-                             tags$li(a(href = 'http://shinyapps.company.com',
+                             tags$li(a(href = 'https://www.institut-necker-enfants-malades.fr/',
                                        icon("power-off"),
-                                       title = "Back to Apps Home"),
+                                       title = "Back to Home"),
                                      class = "dropdown"),
                              tags$li(a(href = 'https://www.institut-necker-enfants-malades.fr/',
                                        img(src = 'inem.jpeg',
