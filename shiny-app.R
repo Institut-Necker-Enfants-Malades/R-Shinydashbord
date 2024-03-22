@@ -30,13 +30,13 @@ options(shiny.maxRequestSize = 50*1024^2) #The maximum upload dataset size. Here
 
 
 dashHeader = dashboardHeader(title ="INEM HUB-BIOINFO",
-                             tags$li(a(href = 'https://github.com/LamineTourelab',
+                             tags$li(a(href = 'https://github.com/Institut-Necker-Enfants-Malades',
                                        icon("github"),
-                                       title = "Autor Github"),
+                                       title = "Instutite Github"),
                                      class = "dropdown"),
-                             tags$li(a(href = 'https://www.linkedin.com/in/lamine-toure',
+                             tags$li(a(href = 'https://www.linkedin.com/company/inem-institut-necker-enfants-malades/',
                                        icon("linkedin"),
-                                       title = "Autor linkedin"),
+                                       title = "Instutite linkedin"),
                                      class = "dropdown"),
                              tags$li(a(href = 'https://laminetourelab.github.io/',
                                        icon("blog"),
