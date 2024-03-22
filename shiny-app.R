@@ -17,13 +17,17 @@ library(Amelia) # for missing values visualization
 library(igvShiny)
 library(shinymanager)
 library(hypeR)
-
+library(GSA)
 ## ==================================================================== Datasets ============================================================================================##
 data(breast.TCGA) # from the mixomics package.
 mRna = data.frame(breast.TCGA$data.train$mrna)
 mRna$subtype = breast.TCGA$data.train$subtype
 Transcriptomics_data <- readr::read_csv("https://raw.githubusercontent.com/Institut-Necker-Enfants-Malades/R-Shinydashbord/main/Data/Transcriptomics%20data.csv")
 stock.genomes <- sort(get_css_genomes())
+dbs <- c("GO_Molecular_Function_2015", "GO_Cellular_Component_2015", "GO_Biological_Process_2015",
+         "Reactome_2015", "Reactome_2016", "OMIM_Disease", "MSigDB_Oncogenic_Signatures", "KEGG_2015",
+         "KEGG_2016", "GO_Biological_Process_2018", "Human_Phenotype_Ontology", "Cancer_Cell_Line_Encyclopedia",
+         "RNA-Seq_Disease_Gene_and_Drug_Signatures_from_GEO")
 # ==================================================================== Options ===================================================================================================#
 options(shiny.maxRequestSize = 50*1024^2) #The maximum upload dataset size. Here at 50MB.
 # ======================================================================  Ui. =================================================================================================##
@@ -254,10 +258,7 @@ dashbody <- dashboardBody(
                                DT::dataTableOutput(outputId = 'summarytablecount')
                       ),
                       tabPanel(title='Gene Set Enrichment',
-                               #Placeholder for plot
-                               textAreaInput(inputId = 'textinputdiff', label = 'Paste a gene list'),
-                               textOutput(outputId = 'textoutpoutdiff'),
-                               plotlyOutput(outputId='gsea'),
+                               
                       )
               )
             )
@@ -276,26 +277,29 @@ dashbody <- dashboardBody(
       fluidPage(
         sidebarLayout(
           sidebarPanel(
-            # Put your geneset selector module anywhere
-            hypeR::genesets_UI("genesets"),
-            
-            # Add components specific to your application
-            textAreaInput("signature", 
-                          label="Signature", 
-                          rows=5,
-                          placeholder="GENE1,GENE2,GENE3", 
-                          resize="vertical"),
-            
-            actionButton("enrichment", "Enrichment")
+            textAreaInput("genes", "Enter genes names (separed by a ',') :"),
+            actionButton("submit", "Submit"),
+            p(style="text-align: justify;",
+              "Here you can choose a database to see the results in data table format and/or plot."),
+            hr(style="border-color: blue;"),
+            selectInput("databaseenrich", "Choose a database:", choices = dbs)
           ),
-          mainPanel(
-            # Enrichment plot
-            plotOutput("plot")
+          mainPanel(tabsetPanel(
+            tabPanel(title = 'Enrichment',
+                   #  verbatimTextOutput("results"),
+                     DT::dataTableOutput(outputId = 'thetableenrich'),
+            ),
+            tabPanel(title = 'Plot',
+                     plotlyOutput(outputId='gsea'),
+            )
           )
+          ) # mainPanel
+          
         )
-      )
+      ) # fluidPage
       
-    )
+    )#tabItem
+    # ==================================
   ) #tabItems
 ) # dashboardBody
 
@@ -514,57 +518,35 @@ server <- shinyServer(function(input, output, session)
   })
   
   ##### Enrichment
-  my_text <- reactive({
-    input$textinputdiff
-  })
-  
-  output$textoutpoutdiff <- renderText({
-    paste0(my_text(), collapse = ", ")
-  })
-  
-  output$gsea <- renderPlotly({
-    listEnrichrSites()
-    setEnrichrSite("Enrichr")
-    websiteLive <- TRUE
-
-    dbs <- listEnrichrDbs()
+  # Réagir lorsque l'utilisateur clique sur le bouton Soumettre
+  observeEvent(input$submit, {
+    # Extraire les gènes saisis par l'utilisateur et les séparer par des virgules
+    user_genes <- unlist(strsplit(input$genes, ","))
+    
     dbs <- c("GO_Molecular_Function_2015", "GO_Cellular_Component_2015", "GO_Biological_Process_2015",
              "Reactome_2015", "Reactome_2016", "OMIM_Disease", "MSigDB_Oncogenic_Signatures", "KEGG_2015",
              "KEGG_2016", "GO_Biological_Process_2018", "Human_Phenotype_Ontology", "Cancer_Cell_Line_Encyclopedia",
              "RNA-Seq_Disease_Gene_and_Drug_Signatures_from_GEO")
-    if (websiteLive) {
-      enriched <- enrichr(c("SFRP1", "RELN", "FLT1", "GPC3", "APOBEC3B", "CD47", "NTRK2", "TLR8",
-                            "FGF10", "E2F1", "HBEGF", "SLC19A3", "DUSP6", "FOS", "GNG5"), dbs)
-    }
-
-    plotEnrich(enriched[["Reactome_2016"]], showTerms = 20, numChar = 50,
-               y = "Count", orderBy = "P.value", title = "Enrichment analysis",
-               xlab = "Enriched pathways")
-  })
-  
-  genesets <- hypeR::genesets_Server("genesets")
-  
-  # Your custom downstream functions
-  reactive_plot <- eventReactive(input$enrichment, {
     
-    # Here are the fetched genesets
-    gsets <- genesets()
+    # Exécuter l'analyse d'enrichissement de gènes avec enrichR
+    enrichment_result <- enrichr(user_genes, dbs)
     
-    # Process the signature into a character vector
-    signature <- input$signature %>%
-      stringr::str_split(pattern=",", simplify=TRUE) %>%
-      as.vector()
+    # Afficher les résultats dans la sortie
+    output$results <- renderPrint({
+      head(enrichment_result[[input$databaseenrich]])
+    })
     
-    # Run hypeR
-    hyp <- hypeR::hypeR(signature, gsets, test="hypergeometric")
-    p <- hypeR::hyp_dots(hyp, top=10, fdr=0.25)
+    output$thetableenrich <- DT::renderDataTable({
+      DT::datatable(enrichment_result[[input$databaseenrich]], rownames = TRUE, options = list(scrollX = TRUE))
+    },
+    server = TRUE)
     
-    # These are just ggplot objects you could customize
-    p + theme(axis.text=element_text(size=12, face="bold"))
-  })
-  
-  output$plot <- renderPlot({
-    reactive_plot()
+    output$gsea <- renderPlotly({
+      
+      plotEnrich(enrichment_result[[input$databaseenrich]], showTerms = 20, numChar = 50,
+                 y = "Count", orderBy = "P.value", title = "Enrichment analysis",
+                 xlab = "Enriched pathways")
+    })
   })
   
     ## =========================================================================.  Statistical Panel results.  =============================================================================== #
