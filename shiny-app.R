@@ -20,7 +20,7 @@ library(Amelia) # for missing values visualization
 library(igvShiny)
 library(GenomicAlignments)
 library(rtracklayer)
-library(shinymanager)
+#library(shinymanager)
 
 ## ==================================================================== Datasets ============================================================================================##
 data(breast.TCGA) # from the mixomics package.
@@ -153,7 +153,7 @@ dashbody <- dashboardBody(
                           tabPanel(title='Histogram ',
                                    #Placeholder for plot
                                    plotlyOutput(outputId='Histplot',height = "600px"),
-                                   h4(strong("Exporting the Scree plot")),
+                                   h4(strong("Exporting the Histogram")),
                                    fluidRow(
                                      column(3,numericInput("width_png_hist","Width of PNG", value = 1600)),
                                      column(3,numericInput("height_png_hist","Height of PNG", value = 1200)),
@@ -164,7 +164,7 @@ dashbody <- dashboardBody(
                           tabPanel(title='Box  plot',
                                    #Placeholder for plot
                                    plotlyOutput(outputId='boxplot',height = "600px"),
-                                   h4(strong("Exporting the Scree plot")),
+                                   h4(strong("Exporting the Box plot")),
                                    fluidRow(
                                      column(3,numericInput("width_png_boxplot","Width of PNG", value = 1600)),
                                      column(3,numericInput("height_png_boxplot","Height of PNG", value = 1200)),
@@ -175,18 +175,18 @@ dashbody <- dashboardBody(
                           tabPanel(title='Linear plot',
                                    #Placeholder for plot
                                    plotlyOutput(outputId='linearplot',height = "600px"),
-                                   h4(strong("Exporting the Scree plot")),
+                                   h4(strong("Exporting the linear plot")),
                                    fluidRow(
-                                     column(3,numericInput("width_pnglinearplot","Width of PNG", value = 1600)),
-                                     column(3,numericInput("height_pnglinearplot","Height of PNG", value = 1200)),
-                                     column(3,numericInput("resolution_PNGlinearplot","Resolution of PNG", value = 144)),
+                                     column(3,numericInput("width_png_linearplot","Width of PNG", value = 1600)),
+                                     column(3,numericInput("height_png_linearplot","Height of PNG", value = 1200)),
+                                     column(3,numericInput("resolution_PNG_linearplot","Resolution of PNG", value = 144)),
                                      column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_linearplot','Download PNG'))
                                    )
                           ),
                           tabPanel(title='Density plot',
                                    #Placeholder for plot
                                    plotlyOutput(outputId='density',height = "600px"),
-                                   h4(strong("Exporting the Scree plot")),
+                                   h4(strong("Exporting the Density plot")),
                                    fluidRow(
                                      column(3,numericInput("width_png_densityplot","Width of PNG", value = 1600)),
                                      column(3,numericInput("height_png_densityplot","Height of PNG", value = 1200)),
@@ -332,7 +332,7 @@ dashbody <- dashboardBody(
                              # Choose number of bins
                              sliderInput(inputId='kmeansbins',
                                          label = 'Please select a number of clusters',
-                                         min = 1, max = 10, value = 4),
+                                         min = 1, max = 20, value = 4),
                              
                 ), # sidebarPanel
                 mainPanel(width = 9,
@@ -342,9 +342,9 @@ dashbody <- dashboardBody(
                                      plotOutput(outputId = 'missmap',height = "600px"),
                                      h4(strong("Exporting the Missing values plot")),
                                      fluidRow(
-                                       column(3,numericInput("width_png","Width of PNG", value = 1600)),
-                                       column(3,numericInput("height_png","Height of PNG", value = 1200)),
-                                       column(3,numericInput("resolution_PNG","Resolution of PNG", value = 144)),
+                                       column(3,numericInput("width_png_missmap","Width of PNG", value = 1600)),
+                                       column(3,numericInput("height_png_missmap","Height of PNG", value = 1200)),
+                                       column(3,numericInput("resolution_PNG_missmap","Resolution of PNG", value = 144)),
                                        column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_missmap','Download PNG'))
                                      )
                                      ),
@@ -363,7 +363,7 @@ dashbody <- dashboardBody(
                                      #Placeholder for plot
                                      fluidPage(
                                        plotlyOutput(outputId='kmeanscluster',height = "600px"),
-                                       h4(strong("Exporting the Heatmap plot")),
+                                       h4(strong("Exporting the Kmeans cluster plot")),
                                        fluidRow(
                                          column(3,numericInput("width_png_kmeanscluster","Width of PNG", value = 1600)),
                                          column(3,numericInput("height_png_kmeanscluster","Height of PNG", value = 1200)),
@@ -373,7 +373,7 @@ dashbody <- dashboardBody(
                                      ),
                                      fluidPage(
                                        plotlyOutput(outputId='kmeansclusterannot',height = "600px"),
-                                       h4(strong("Exporting the Heatmap plot")),
+                                       h4(strong("Exporting the Kmeans annotated plot")),
                                        fluidRow(
                                          column(3,numericInput("width_png_kmeansclusterannot","Width of PNG", value = 1600)),
                                          column(3,numericInput("height_png_kmeansclusterannot","Height of PNG", value = 1200)),
@@ -383,7 +383,7 @@ dashbody <- dashboardBody(
                                      ),
                                      fluidPage(
                                        plotlyOutput(outputId='kmeanselbow',height = "600px"),
-                                       h4(strong("Exporting the Heatmap plot")),
+                                       h4(strong("Exporting the Kmeans Elbow plot")),
                                        fluidRow(
                                          column(3,numericInput("width_png_kmeanselbow","Width of PNG", value = 1600)),
                                          column(3,numericInput("height_png_kmeanselbow","Height of PNG", value = 1200)),
@@ -623,40 +623,92 @@ server <- shinyServer(function(input, output, session)
       selected = 'subtype'
     )
   })
-  
+ #++++++++++++++++++++ Histogram 
   output$Histplot <- renderPlotly({
     Hist <- ggplot(Datagraph(), aes_string(x=input$Vartoplot, fill=input$VarColor)) +  geom_histogram(bins = input$histbins)
-    Hist %>% 
+    Hist1 = Hist %>% 
       ggplotly(tooltip = 'all')
+    vals$Hist = Hist
   })
-  
+  # downloading PNG -----
+  output$downloadPlotPNG_hist <- downloadHandler(
+    filename = function() {
+      x <- gsub(":", ".", Sys.Date())
+      paste("Histogram_",input$title, gsub("/", "-", x), ".png", sep = "")
+    },
+    content = function(file) {
+      
+      png(file, width = input$width_png_hist, height = input$height_png_hist, res = input$resolution_PNG_hist)
+      grid.arrange(vals$Hist)
+      dev.off()}
+  )
+  #++++++++++++++++++++ density
   output$density <- renderPlotly({
     Dens <- ggplot(Datagraph(), aes_string(x=input$Vartoplot1, fill=input$VarColor1)) +  geom_density(fill='grey50')
-    Dens %>% 
+    Dens1 = Dens %>% 
       ggplotly(tooltip = 'all') %>%
       layout(dragmode = "select")
+    vals$densityplot = Dens
   })
-  
+  # downloading PNG -----
+  output$downloadPlotPNG_densityplot <- downloadHandler(
+    filename = function() {
+      x <- gsub(":", ".", Sys.Date())
+      paste("Density_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
+    },
+    content = function(file) {
+      
+      png(file, width = input$width_png_densityplot, height = input$height_png_densityplot, res = input$resolution_PNG_densityplot)
+      grid.arrange(vals$densityplot)
+      dev.off()}
+  )
+  #++++++++++++++++++++ Box plot
   output$boxplot <- renderPlotly({
     Boxp <- ggplot(Datagraph(), aes_string(input$VarColor, input$Vartoplot, fill=input$VarColor)) +  geom_boxplot() 
-    Boxp %>% 
+    Boxp1 = Boxp %>% 
       ggplotly(tooltip = 'all') 
+    vals$Boxp = Boxp
   })
-  
+  # downloading PNG -----
+  output$downloadPlotPNG_boxplot <- downloadHandler(
+    filename = function() {
+      x <- gsub(":", ".", Sys.Date())
+      paste("Box_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
+    },
+    content = function(file) {
+      
+      png(file, width = input$width_png_boxplot, height = input$height_png_boxplot, res = input$resolution_PNG_boxplot)
+      grid.arrange(vals$Boxp)
+      dev.off()}
+  )
+  #++++++++++++++++++++ Linear plot
   output$linearplot <- renderPlotly({
     
-    if(!input$Vartofill == 'NULL'){
-      Corrp <-  ggplot(Datagraph(), aes_string(input$VarColor1, input$Vartoplot1 , fill=input$Vartofill)) + geom_point(position = "jitter") 
-      Corrp %>% 
+    if(input$Vartofill == 'NULL'){
+      Corrp <-  ggplot(Datagraph(), aes_string(input$VarColor1, input$Vartoplot1 )) + geom_point(position = "jitter") 
+      Corrp1 = Corrp %>% 
         ggplotly(tooltip = 'all')
+      vals$linearplot = Corrp
     }else{
-      Corrp <-  ggplot(Datagraph(), aes_string(input$VarColor1, input$Vartoplot1)) + geom_point(position = "jitter") 
-      Corrp %>% 
+      Corrp <-  ggplot(Datagraph(), aes_string(input$VarColor1, input$Vartoplot1, fill=input$Vartofill)) + geom_point(position = "jitter") + geom_smooth(method="lm", se = FALSE) 
+      Corrp1 = Corrp %>% 
         ggplotly(tooltip = 'all')
+      vals$linearplot = Corrp
     }
   })
-  
-  
+  # downloading PNG -----
+  output$downloadPlotPNG_linearplot <- downloadHandler(
+    filename = function() {
+      x <- gsub(":", ".", Sys.Date())
+      paste("Linear_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
+    },
+    content = function(file) {
+      
+      png(file, width = input$width_png_linearplot, height = input$height_png_linearplot, res = input$resolution_PNG_linearplot)
+      grid.arrange(vals$linearplot)
+      dev.off()}
+  )
+  #++++++++++++++++++++ Data table
   output$thetable <- DT::renderDataTable({
     DT::datatable(Datagraph(), rownames = TRUE, options = list(scrollX = TRUE))
   },
@@ -1069,7 +1121,7 @@ server <- shinyServer(function(input, output, session)
     res.km <- kmeans(scale(Datastatsclust()), input$kmeansbins, nstart = 25)
     # Clustering K-means montrant le groupe de chaque individu
     kmeanscluster = fviz_cluster(res.km, data = Datastatsclust(),
-                 palette = c("#2E9FDF", "#00AFBB", "#E7B800", '#E87722'), 
+                # palette = c("#2E9FDF", "#00AFBB", "#E7B800", '#E87722'), 
                  geom = "point",
                  ellipse.type = "convex", 
                  ggtheme = theme_bw()
@@ -1099,7 +1151,7 @@ server <- shinyServer(function(input, output, session)
     ind.coord$cluster <- factor(res.km$cluster)
     # Ajouter les groupes d'espèces issues du jeu de données initial
     metadata = Metadastatsclust() %>% dplyr::select(input$Vartoplotstatsclust)
-    ind.coord$metadata <- input$Vartoplotstatsclust
+    ind.coord$metadata <- metadata[,1]
    
     # Pourcentage de la variance expliquée par les dimensions
     eigenvalue <- round(get_eigenvalue(res.pca), 1)
@@ -1114,6 +1166,7 @@ server <- shinyServer(function(input, output, session)
       ylab = paste0("Dim 2 (", variance.percent[2], "% )" )
     ) +
       stat_mean(aes(color = cluster), size = 4)
+    vals$kmeansclusterannot = kmeansclusterannot
   })
   
   # downloading PNG -----
@@ -1133,6 +1186,7 @@ server <- shinyServer(function(input, output, session)
     kmeanselbow = fviz_nbclust(Datastatsclust(), kmeans, method = "wss") +
       geom_vline(xintercept = input$kmeansbins, linetype = 2)+
       labs(subtitle = "Elbow method") 
+    vals$kmeanselbow = kmeanselbow
   })
   
   # downloading PNG -----
