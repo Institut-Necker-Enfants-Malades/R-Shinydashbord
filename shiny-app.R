@@ -20,7 +20,20 @@ library(Amelia) # for missing values visualization
 library(igvShiny)
 library(GenomicAlignments)
 library(rtracklayer)
-#library(shinymanager)
+library(rstudioapi)
+library(Seurat)
+library(patchwork) #The goal of patchwork is to make it ridiculously simple to combine separate ggplots into the same graphic.
+library(S4Vectors)
+library(celldex) #BiocManager::install('celldex')
+library(SingleR) #BiocManager::install('SingleR')
+library(harmony)
+library(DoubletFinder) #remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+library(SeuratWrappers) #remotes::install_github('satijalab/seurat-wrappers')
+library(slingshot) #BiocManager::install('slingshot')
+library(colorRamps)
+library(CellChat) #remotes::install_github('sqjin/CellChat')
+source("/Users/lamine/Documents/shinydashboard/INEM/Preprocessing.R")
+source("/Users/lamine/Documents/shinydashboard/INEM/Cell_type_annotation.R")
 
 ## ==================================================================== Datasets ============================================================================================##
 data(breast.TCGA) # from the mixomics package.
@@ -590,11 +603,149 @@ dashbody <- dashboardBody(
     ),#tabItem
     # ================================================================================  10x Genomic
     tabItem(
-      tabName = '10X'
+      tabName = '10X',
+      fluidPage(
+        sidebarLayout(
+          sidebarPanel(width = 3, 
+                       p(style="text-align: justify;",
+                         "Here you can upload you own data by changing the mode test-data to own.", br(), "Maximum size = 50MB"),
+                       selectInput("dataset10x", "Choose a dataset:", choices = c("test-data", "own")),
+                       p(style="text-align: justify;","The uploading data should be the .RDS output results of Seven Bridges platform."),
+                       fileInput(inputId = 'file10x', 'Seurat RDS file from SevenBridges',
+                                 accept=c('rds', '.rds')),
+                       
+          ),
+          mainPanel( width = 9,
+                     tabsetPanel(
+                       tabPanel(title = 'Preprocessing ',
+                                plotlyOutput(outputId='10xpreprocessing',height = "600px"),
+                       ),
+                       tabPanel(title = 'Cell annotation',
+                                plotlyOutput(outputId='10xcellannotation',height = "600px"),
+                       ),
+                       tabPanel(title = 'Merge and Remove batch effect',
+                                plotlyOutput(outputId='10xbatcheffect',height = "600px"),
+                       ),
+                       tabPanel(title = 'Finding doublets',
+                                plotlyOutput(outputId='10xdoublet',height = "600px"),
+                       ),
+                       tabPanel(title = 'Finding marker genes',
+                                plotlyOutput(outputId='10xmarkergenes',height = "600px"),
+                       ),
+                       navbarMenu(title = 'Further Analysis',
+                                  tabPanel(title = 'Pseudotime Analysis',
+                                           plotlyOutput(outputId='10xpseudotime',height = "600px"),
+                                  ),
+                                  tabPanel(title = 'Cell Communication',
+                                           plotlyOutput(outputId='10xcellcommunication',height = "600px"),
+                                  )
+                       ) # navbarMenu
+                     ) #tabsetPanel 
+          ) #mainPanel
+        ) # sidebarLayout
+      ) # fluidPage
     ),
     # ================================================================================  BD Rhapsody
     tabItem(
-      tabName = 'rhapsody'
+      tabName = 'rhapsody',
+      fluidPage(
+        sidebarLayout(
+          sidebarPanel(width = 3, 
+                       p(style="text-align: justify;",
+                         "Here you can upload you own data by changing the mode test-data to own.", br(), "Maximum size = 50MB"),
+                       selectInput("datasetrhapsody", "Choose a dataset:", choices = c("test-data", "own")),
+                       p(style="text-align: justify;","The uploading data should be the .RDS output results of Seven Bridges platform."),
+                       fileInput(inputId = 'filerhapsody', 'Seurat RDS file from SevenBridges',
+                                 accept=c('rds', '.rds')),
+                       
+          ),
+          mainPanel( width = 9,
+                     tabsetPanel(
+                       tabPanel(title = 'Preprocessing ',
+                                plotlyOutput(outputId='rhapsodymtgene',height = "600px"),
+                                h4(strong("Exporting the MT gene% plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_mtgene","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_mtgene","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_mtgene","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_mtgene','Download PNG'))
+                                ),
+                                plotlyOutput(outputId='rhapsodymtgenefilter',height = "600px"),
+                                h4(strong("Exporting the MT gene% After Filter plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_mtgenefilter","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_mtgenefilter","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_mtgenefilter","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_mtgenefilter','Download PNG'))
+                                ),
+                                plotlyOutput(outputId='rhapsodyfeaturescatter',height = "600px"),
+                                h4(strong("Exporting the Feature Scatter plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_featurescatter","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_featurescatter","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_featurescatter","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_featurescatter','Download PNG'))
+                                ),
+                                plotlyOutput(outputId='rhapsodyfeaturescatterfilter',height = "600px"),
+                                h4(strong("Exporting the Feature Scatter plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_featurescatterfilter","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_featurescatterfilter","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_featurescatterfilter","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_featurescatterfilter','Download PNG'))
+                                )
+                       ),
+                       tabPanel(title = 'Clustering Plots',
+                                plotlyOutput(outputId='rhapsodyumap',height = "600px"),
+                                h4(strong("Exporting the UMAP plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_umap","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_umap","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_umap","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_umap','Download PNG'))
+                                ),
+                                plotlyOutput(outputId='rhapsodytsne',height = "600px"),
+                                h4(strong("Exporting the TSNE plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_tsne","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_tsne","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_tsne","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_tsne','Download PNG'))
+                                ),
+                                plotlyOutput(outputId='rhapsodypca',height = "600px"),
+                                h4(strong("Exporting the PCA plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_ypca","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_ypca","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_ypca","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_ypca','Download PNG'))
+                                )
+                       ),
+                       
+                       tabPanel(title = 'Cell annotation',
+                                plotlyOutput(outputId='rhapsodycellannotation',height = "600px"),
+                       ),
+                       tabPanel(title = 'Merge and Remove batch effect',
+                                plotlyOutput(outputId='rhapsodybatcheffect',height = "600px"),
+                       ),
+                       tabPanel(title = 'Finding doublets',
+                                plotlyOutput(outputId='rhapsodydoublet',height = "600px"),
+                       ),
+                       tabPanel(title = 'Finding marker genes',
+                                plotlyOutput(outputId='rhapsodymarkergenes',height = "600px"),
+                       ),
+                       navbarMenu(title = 'Further Analysis',
+                       tabPanel(title = 'Pseudotime Analysis',
+                                plotlyOutput(outputId='rhapsodypseudotime',height = "600px"),
+                       ),
+                       tabPanel(title = 'Cell Communication',
+                                plotlyOutput(outputId='rhapsodycellcommunication',height = "600px"),
+                       )
+                       ) # navbarMenu
+                     ) #tabsetPanel 
+          ) #mainPanel
+        ) # sidebarLayout
+      ) # fluidPage
     )
     # ================================================================================  
   ) #tabItems
@@ -939,7 +1090,7 @@ server <- shinyServer(function(input, output, session)
     output$ downloadPlotPNG_enrichr <- downloadHandler(
       filename = function() {
         x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-        paste("Enrichment_Analysis_",input$title, gsub("/", "-", x), ".png", sep = "")
+        paste("Enrichment_Analysis_Plot_",input$title, gsub("/", "-", x), ".png", sep = "")
       },
       content = function(file) {
         
@@ -1290,7 +1441,103 @@ server <- shinyServer(function(input, output, session)
       igvShiny(genomeSpec)
     )
   })
-  ## =======================================================================================. IGV =========================================================================================================#
+  ## =======================================================================================. Rhapsody =========================================================================================================#
+  Datastatrhapsody <- reactive({switch(input$datasetrhapsody,"test-data" = test.data.rhapsody(),"own" = own.data.rhapsody())})
+  
+  test.data.rhapsody <- reactive ({ 
+    readRDS("/Users/lamine/INEM/Projets/Peter/Test/BD-Demo-7Bridges-WTA_AbSeq_SMK/Protocol-rerun_Seurat.rds")
+  })
+  
+  own.data.rhapsody <- reactive({
+    if(is.null(input$filerhapsody)){
+      return(NULL)
+    }
+    dataframe = readRDS(input$filerhapsody$datapath)
+    
+  })
+  
+  demo_seurat <- reactive({
+    demo_seurat <- func_get_AbSeq(demo_seurat = Datastatrhapsody())
+    demo_seurat$smk <- demo_seurat$Sample_Name
+    demo_seurat <- func_quick_process(demo_seurat)
+  })
+  
+  # filter out cells with MT genes percentage > 50 (%) and 
+  # cells with low nFeature_RNA
+  subset_demo_seurat <- reactive({
+    subset_demo_seurat <- subset(demo_seurat(), 
+                                   subset = percent.mt < 50 & 
+                                     nFeature_RNA > 200, 
+                                   invert = F)
+    subset_demo_seurat <- func_quick_process(subset_demo_seurat)
+  })
+  # QC plots – check mitochondrial gene percentages
+  output$rhapsodymtgene <- renderPlotly({
+    
+    p <- Seurat::VlnPlot(demo_seurat(), 
+                          features = "percent.mt", 
+                          group.by = "seurat_clusters") + 
+      Seurat::NoLegend() + 
+      ggtitle("MT Gene %")
+    p
+  })
+  output$rhapsodymtgenefilter <- renderPlotly({
+   
+    p2 <- Seurat::VlnPlot(subset_demo_seurat(), 
+                          features = "percent.mt", 
+                          group.by = "seurat_clusters") + 
+      Seurat::NoLegend() + 
+      ggtitle("MT Gene % After Filter")
+    
+    p2
+  })
+  
+  # Feature Scatter 
+  output$rhapsodyfeaturescatter <- renderPlotly({
+    p3 <- Seurat::FeatureScatter(demo_seurat(), 
+                                 feature1 = "nCount_RNA", 
+                                 feature2 = "nFeature_RNA", 
+                                 group.by = "seurat_clusters") + 
+      scale_x_log10() +
+      scale_y_log10() +
+      ggtitle("Feature Scatter plot")
+    
+    p3
+  })
+  
+  output$rhapsodyfeaturescatterfilter <- renderPlotly({
+    p4 <- Seurat::FeatureScatter(subset_demo_seurat(), 
+                                 feature1 = "nCount_RNA", 
+                                 feature2 = "nFeature_RNA", 
+                                 group.by = "seurat_clusters") + 
+      scale_x_log10() +
+      scale_y_log10() +
+      ggtitle("Feature Scatter plot After Filter")
+    
+    p4
+  })
+  
+  output$rhapsodyumap <- renderPlotly({
+    p5 <- Seurat::DimPlot(subset_demo_seurat(), 
+                          reduction = "umap", 
+                          group.by = "seurat_clusters") + 
+      ggtitle("UMAP Plot")
+  })
+  
+  output$rhapsodytsne <- renderPlotly({
+    p5 <- Seurat::DimPlot(subset_demo_seurat(), 
+                          reduction = "tsne", 
+                          group.by = "seurat_clusters") + 
+      ggtitle("TSNE Plot")
+  })
+  
+  output$rhapsodypca <- renderPlotly({
+    p5 <- Seurat::DimPlot(subset_demo_seurat(), 
+                          reduction = "pca", 
+                          group.by = "seurat_clusters") + 
+      ggtitle("PCA Plot")
+  })
+  ## =======================================================================================. End Server =========================================================================================================#
   # This are for the server close
 })
 
