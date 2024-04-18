@@ -32,7 +32,7 @@ library(SeuratWrappers) #remotes::install_github('satijalab/seurat-wrappers')
 library(slingshot) #BiocManager::install('slingshot')
 library(colorRamps)
 library(CellChat) #remotes::install_github('sqjin/CellChat')
-source("/Users/lamine/Documents/shinydashboard/INEM/Preprocessing.R")
+source("/Users/lamine/Documents/shinydashboard/INEM/Rhapsody_funs.R")
 source("/Users/lamine/Documents/shinydashboard/INEM/Cell_type_annotation.R")
 
 ## ==================================================================== Datasets ============================================================================================##
@@ -304,21 +304,21 @@ dashbody <- dashboardBody(
                             ),
                             tabPanel(title='Individuals  plot',
                                      #Placeholder for plot
-                                     plotlyOutput(outputId='pca',height = "600px"),
+                                     plotlyOutput(outputId='pcaind',height = "600px"),
                                      h4(strong("Exporting the Individuals PCA plot")),
                                      fluidRow(
                                        
-                                       column(3,numericInput("width", "Width of PDF", value=10)),
-                                       column(3,numericInput("height", "Height of PDF", value=8)),
+                                       column(3,numericInput("width_pcaind", "Width of PDF", value=10)),
+                                       column(3,numericInput("height_pcaind", "Height of PDF", value=8)),
                                        column(3),
-                                       column(3,style = "margin-top: 25px;",downloadButton('downloadPlot','Download PDF'))
+                                       column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPDF_pcaind','Download PDF'))
                                      ),
                                      
                                      fluidRow(
-                                       column(3,numericInput("width_png","Width of PNG", value = 1600)),
-                                       column(3,numericInput("height_png","Height of PNG", value = 1200)),
-                                       column(3,numericInput("resolution_PNG","Resolution of PNG", value = 144)),
-                                       column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG','Download PNG'))
+                                       column(3,numericInput("width_png_pcaind","Width of PNG", value = 1600)),
+                                       column(3,numericInput("height_png_pcaind","Height of PNG", value = 1200)),
+                                       column(3,numericInput("resolution_PNG_pcaind","Resolution of PNG", value = 144)),
+                                       column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_pcaind','Download PNG'))
                                      )
                             ),
                             
@@ -722,31 +722,75 @@ dashbody <- dashboardBody(
                                 )
                        ),
                        
-                       tabPanel(title = 'Cell annotation',
-                                plotlyOutput(outputId='rhapsodycellannotation',height = "600px"),
+                       tabPanel(title = 'Cell Type Annotation',
+                                plotOutput(outputId='rhapsodyplotScoreHeatmap',height = "600px"),
+                                h4(strong("Exporting the SingleR plotScoreHeatmap plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_plotScoreHeatmap","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_plotScoreHeatmap","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_plotScoreHeatmap","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_plotScoreHeatmap','Download PNG'))
+                                ),
+                                plotlyOutput(outputId='rhapsodyumapcelltype',height = "600px"),
+                                h4(strong("Exporting the SingleR UMAP Cell type plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_umapcelltype","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_umapcelltype","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_umapcelltype","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_umapcelltype','Download PNG'))
+                                )
                        ),
                        tabPanel(title = 'Merge and Remove batch effect',
                                 plotlyOutput(outputId='rhapsodybatcheffect',height = "600px"),
                        ),
                        tabPanel(title = 'Finding doublets',
                                 plotlyOutput(outputId='rhapsodydoublet',height = "600px"),
+                                h4(strong("Exporting the Doublets plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_doublet","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_doublet","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_doublet","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_doublet','Download PNG'))
+                                )
                        ),
                        tabPanel(title = 'Finding marker genes',
-                                plotlyOutput(outputId='rhapsodymarkergenes',height = "600px"),
+                                plotlyOutput(outputId='rhapsodymarkergenes',height = "1000px"),
+                                h4(strong("Exporting the Markers genes plot")),
+                                fluidRow(
+                                  column(3,numericInput("width_png_markergenes","Width of PNG", value = 1600)),
+                                  column(3,numericInput("height_png_markergenes","Height of PNG", value = 1200)),
+                                  column(3,numericInput("resolution_PNG_markergenes","Resolution of PNG", value = 144)),
+                                  column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_markergenes','Download PNG'))
+                                )
                        ),
                        navbarMenu(title = 'Further Analysis',
-                       tabPanel(title = 'Pseudotime Analysis',
-                                plotlyOutput(outputId='rhapsodypseudotime',height = "600px"),
-                       ),
-                       tabPanel(title = 'Cell Communication',
-                                plotlyOutput(outputId='rhapsodycellcommunication',height = "600px"),
-                       )
+                                  tabPanel(title = 'Pseudotime Analysis',
+                                           plotOutput(outputId='rhapsodypseudotimelineage',height = "1000px"),
+                                           h4(strong("Exporting the Pseudotime Analysis plot")),
+                                           fluidRow(
+                                             column(3,numericInput("width_png_pseudotimelineage","Width of PNG", value = 1600)),
+                                             column(3,numericInput("height_png_pseudotimelineage","Height of PNG", value = 1200)),
+                                             column(3,numericInput("resolution_PNG_pseudotimelineage","Resolution of PNG", value = 144)),
+                                             column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_pseudotimelineage','Download PNG'))
+                                           ),
+                                           plotOutput(outputId='rhapsodypseudotimesampletag',height = "1000px"),
+                                           h4(strong("Exporting the Pseudotime Analysis plot")),
+                                           fluidRow(
+                                             column(3,numericInput("width_png_pseudotimesampletag","Width of PNG", value = 1600)),
+                                             column(3,numericInput("height_png_pseudotimesampletag","Height of PNG", value = 1200)),
+                                             column(3,numericInput("resolution_PNG_pseudotimesampletag","Resolution of PNG", value = 144)),
+                                             column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_pseudotimesampletag','Download PNG'))
+                                           )
+                                  ),
+                                  tabPanel(title = 'Cell Communication',
+                                           plotlyOutput(outputId='rhapsodycellcommunication',height = "600px"),
+                                  )
                        ) # navbarMenu
                      ) #tabsetPanel 
           ) #mainPanel
         ) # sidebarLayout
       ) # fluidPage
-    )
+    ) #tabItem
     # ================================================================================  
   ) #tabItems
 ) # dashboardBody
@@ -831,25 +875,17 @@ server <- shinyServer(function(input, output, session)
       selected = 'subtype'
     )
   })
-  #++++++++++++++++++++ Histogram 
+  #++++++++++++++++++++++++++++++++++++++++ Histogram 
   output$Histplot <- renderPlotly({
     Hist <- ggplot(Datagraph(), aes_string(x=input$Vartoplot, fill=input$VarColor)) +  geom_histogram(bins = input$histbins)
     Hist1 = Hist %>% ggplotly(tooltip = 'all')
     vals$Hist = Hist
   })
   # downloading PNG -----
-  output$downloadPlotPNG_hist <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Histogram_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_hist, height = input$height_png_hist, res = input$resolution_PNG_hist)
-      grid.arrange(vals$Hist)
-      dev.off()}
-  )
-  #++++++++++++++++++++ density
+  output$downloadPlotPNG_hist <- func_save_png(titlepng = "Histogram_", img = vals$Hist, width = input$width_png_hist, 
+                                               height = input$height_png_hist, res = input$resolution_PNG_hist)
+  
+  #++++++++++++++++++++++++++++++++++++++++ density
   output$density <- renderPlotly({
     Dens <- ggplot(Datagraph(), aes_string(x=input$Vartoplot1, fill=input$VarColor1)) +  geom_density(fill='grey50')
     Dens1 = Dens %>% 
@@ -857,57 +893,33 @@ server <- shinyServer(function(input, output, session)
       layout(dragmode = "select")
     vals$densityplot = Dens
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_densityplot <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Density_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_densityplot, height = input$height_png_densityplot, res = input$resolution_PNG_densityplot)
-      grid.arrange(vals$densityplot)
-      dev.off()}
-  )
-  #++++++++++++++++++++ Box plot
+  # downloading Density plot PNG -----
+  output$downloadPlotPNG_densityplot <- func_save_png(titlepng = "Density_plot_", img = vals$densityplot, width = input$width_png_densityplot, 
+                                                      height = input$height_png_densityplot, res = input$resolution_PNG_densityplot)
+  
+  #++++++++++++++++++++++++++++++++++++++++ Box plot
   output$boxplot <- renderPlotly({
     Boxp <- ggplot(Datagraph(), aes_string(input$VarColor, input$Vartoplot, fill=input$VarColor)) +  geom_boxplot() 
     Boxp1 = Boxp %>% 
       ggplotly(tooltip = 'all') 
     vals$Boxp = Boxp
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_boxplot <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Box_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_boxplot, height = input$height_png_boxplot, res = input$resolution_PNG_boxplot)
-      grid.arrange(vals$Boxp)
-      dev.off()}
-  )
-  #++++++++++++++++++++ Violin plot
+  # downloading Box plot PNG -----
+  output$downloadPlotPNG_boxplot <- func_save_png(titlepng = "Box_plot_", img = vals$Boxp, width = input$width_png_boxplot, 
+                                                  height = input$height_png_boxplot, res = input$resolution_PNG_boxplot)
+  
+  #++++++++++++++++++++++++++++++++++++++++ Violin plot
   output$violinplot <- renderPlotly({
     Violin <- ggplot(Datagraph(), aes_string(input$VarColor, input$Vartoplot, fill=input$VarColor)) +  geom_violin() 
     Violin1 = Violin %>% 
       ggplotly(tooltip = 'all') 
     vals$Violin = Violin
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_violin <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Violin_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_violin, height = input$height_png_violin, res = input$resolution_PNG_violin)
-      grid.arrange(vals$Violin)
-      dev.off()}
-  )
-  #++++++++++++++++++++ Linear plot
+  # downloading Violin PNG -----
+  output$downloadPlotPNG_violin <- func_save_png(titlepng = "Violin_plot_", img = vals$Violin, width = input$width_png_violin, 
+                                                 height = input$height_png_violin, res = input$resolution_PNG_violin)
+  
+  #++++++++++++++++++++++++++++++++++++++++ Linear plot
   output$linearplot <- renderPlotly({
     
     if(input$Vartofill == 'NULL'){
@@ -922,19 +934,11 @@ server <- shinyServer(function(input, output, session)
       vals$linearplot = Corrp
     }
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_linearplot <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Linear_plot_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_linearplot, height = input$height_png_linearplot, res = input$resolution_PNG_linearplot)
-      grid.arrange(vals$linearplot)
-      dev.off()}
-  )
-  #++++++++++++++++++++ Data table
+  # downloading Linear plot PNG -----
+  output$downloadPlotPNG_linearplot <- func_save_png(titlepng = "Linear_plot_", img = vals$linearplot, width = input$width_png_linearplot, 
+                                                     height = input$height_png_linearplot, res = input$resolution_PNG_linearplot)
+  
+  #++++++++++++++++++++++++++++++++++++++++ Data table
   output$thetable <- DT::renderDataTable({
     DT::datatable(Datagraph(), rownames = TRUE, options = list(scrollX = TRUE))
   },
@@ -958,36 +962,7 @@ server <- shinyServer(function(input, output, session)
     dataframe = readr::read_csv(input$filediff$datapath)
   })
   
-  # 
-  # observe({
-  #   updateSelectInput(
-  #     inputId = 'Vartoplotdiff',
-  #     session = session,
-  #     label = 'Please choose a variable',
-  #     choices = dbs$libraryName
-  #   )
-  # })
-  
-  output$number_of_points <- renderPrint({
-    dat <- as.data.frame(Datadiff())
-    dat$Direction <- "NO"
-    dat$Direction[dat$logFC > 0.6 & dat$Pvalue < 0.05] <- "UP"
-    dat$Direction[dat$logFC < -0.6 & dat$Pvalue < 0.05] <- "DOWN"
-    dat$gene_name <- NA
-    dat$gene_name[dat$Direction != "NO"] <- dat$ID[dat$Direction != "NO"]
-    dat <- dat[order(dat$Pvalue),]
-    dat$logP <- -log10(dat$Pvalue)
-    total <- as.numeric(dim(dat)[1])
-    totalDown <- as.numeric(dim(dat[dat$Direction=='DOWN',])[1])
-    totalNO <- as.numeric(dim(dat[dat$Direction=='NO',])[1])
-    totalUP <- as.numeric(dim(dat[dat$Direction=='UP',])[1])
-    
-    cat('\n There are a total of ', total, ' where '  , totalDown, ' are dowregulated ', totalUP, ' are upregulated and ', totalNO, ' are none, ', 
-        ' which represents ' ,round(totalNO/total*500,2),'% of the data',sep='')
-  })
-  
-  output$Volcanoplot <- renderPlotly({
-    
+  Diffdata <- reactive({
     Datadiff = data.frame(Datadiff())
     # add a column of NAs
     Datadiff$Direction <- "NO"
@@ -1000,7 +975,24 @@ server <- shinyServer(function(input, output, session)
     # Create a new column "gene_name" to de, that will contain the name of genes differentially expressed (NA in case they are not)
     Datadiff$gene_name <- NA
     Datadiff$gene_name[Datadiff$Direction != "NO"] <- Datadiff$ID[Datadiff$Direction != "NO"]
+    Diffdata <- Datadiff
+  })
+  
+  output$number_of_points <- renderPrint({
+    dat <- data.frame(Diffdata())
+    dat <- dat[order(dat$Pvalue),]
+    dat$logP <- -log10(dat$Pvalue)
+    total <- as.numeric(dim(dat)[1])
+    totalDown <- as.numeric(dim(dat[dat$Direction=='DOWN',])[1])
+    totalNO <- as.numeric(dim(dat[dat$Direction=='NO',])[1])
+    totalUP <- as.numeric(dim(dat[dat$Direction=='UP',])[1])
     
+    cat('\n There are a total of ', total, ' where '  , totalDown, ' are dowregulated ', totalUP, ' are upregulated and ', totalNO, ' are none, ', 
+        ' which represents ' ,round(totalNO/total*100,2),'% of the data',sep='')
+  })
+  
+  output$Volcanoplot <- renderPlotly({
+    Datadiff = data.frame(Diffdata())
     volcano_gplot <- ggplot(data=Datadiff, aes(x=logFC, y=-log10(Pvalue), col=Direction, label=gene_name)) + 
       geom_point() + 
       theme_minimal() +
@@ -1013,38 +1005,19 @@ server <- shinyServer(function(input, output, session)
       ggplotly(tooltip = 'all') 
     vals$volcano_gplot = volcano_gplot
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_volcano <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Volcanoplot_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_volcano, height = input$height_png_volcano, res = input$resolution_PNG_volcano)
-      grid.arrange(vals$volcano_gplot)
-      dev.off()}
-  )
+  # downloading Volcano plot PNG -----
+  output$downloadPlotPNG_volcano <- func_save_png(titlepng = "Volcanoplot_", img = vals$volcano_gplot, width = input$width_png_volcano, 
+                                                  height = input$height_png_volcano, res = input$resolution_PNG_volcano)
+  
   #======
   output$summarytable <- DT::renderDataTable({
-    dat <- data.frame(Datadiff())
-    dat$Direction <- "NO"
-    dat$Direction[dat$logFC > 0.6 & dat$Pvalue < 0.05] <- "UP"
-    dat$Direction[dat$logFC < -0.6 & dat$Pvalue < 0.05] <- "DOWN"
-    dat$gene_name <- NA
-    dat$gene_name[dat$Direction != "NO"] <- dat$ID[dat$Direction != "NO"]
-    
+    dat <- data.frame(Diffdata())
     dat <- DT::datatable(dat, options = list(scrollX = TRUE))
     dat
   })
   
   output$summarytablecount <- DT::renderDataTable({
-    dat <- data.frame(Datadiff())
-    dat$Direction <- "NO"
-    dat$Direction[dat$logFC > 0.6 & dat$Pvalue < 0.05] <- "UP"
-    dat$Direction[dat$logFC < -0.6 & dat$Pvalue < 0.05] <- "DOWN"
-    dat$gene_name <- NA
-    dat$gene_name[dat$Direction != "NO"] <- dat$ID[dat$Direction != "NO"]
+    dat <- data.frame(Diffdata())
     dat <- dat %>% dplyr::count(Direction)
     DT::datatable(dat, options = list(scrollX = TRUE))
   })
@@ -1054,11 +1027,6 @@ server <- shinyServer(function(input, output, session)
   observeEvent(input$submit, {
     # Extraire les gènes saisis par l'utilisateur et les séparer par des virgules
     user_genes <- unlist(strsplit(input$genes, ","))
-    
-    # dbs <- c("GO_Molecular_Function_2015", "GO_Cellular_Component_2015", "GO_Biological_Process_2015",
-    #          "Reactome_2015", "Reactome_2016", "OMIM_Disease", "MSigDB_Oncogenic_Signatures", "KEGG_2015",
-    #          "KEGG_2016", "GO_Biological_Process_2018", "Human_Phenotype_Ontology", "Cancer_Cell_Line_Encyclopedia",
-    #          "RNA-Seq_Disease_Gene_and_Drug_Signatures_from_GEO")
     
     # Exécuter l'analyse d'enrichissement de gènes avec enrichR
     enrichment_result <- enrichr(user_genes, dbs$libraryName)
@@ -1086,18 +1054,9 @@ server <- shinyServer(function(input, output, session)
       vals$enrichment = enrichment
     })
     
-    # downloading PNG -----
-    output$ downloadPlotPNG_enrichr <- downloadHandler(
-      filename = function() {
-        x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-        paste("Enrichment_Analysis_Plot_",input$title, gsub("/", "-", x), ".png", sep = "")
-      },
-      content = function(file) {
-        
-        png(file, width = input$width_png_enrichr, height = input$height_png_enrichr, res = input$resolution_PNG_enrichr)
-        grid.arrange(vals$enrichment)
-        dev.off()}
-    )
+    # downloading Enrichment plot PNG -----
+    output$ downloadPlotPNG_enrichr <- func_save_png(titlepng = "Enrichment_Analysis_", img = vals$enrichment, width = input$width_png_enrichr, 
+                                                     height = input$height_png_enrichr, res = input$resolution_PNG_enrichr)
   })
   
   ## =========================================================================.  Statistical Panel results.  =============================================================================== #
@@ -1144,93 +1103,56 @@ server <- shinyServer(function(input, output, session)
       choices = names(Metadastats())
     )
   })
-  
-  # ======= PCA Ind  
-  output$pca <- renderPlotly({
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ PCA 
+  pca <- reactive({
     Datastats <- as.matrix(Datastats())
-    metadata = Metadastats() %>% dplyr::select(input$Vartoplotstats)
     pca = FactoMineR::PCA(Datastats, scale.unit=T, graph=F)
-    
-    pcafig = fviz_pca_ind(pca, fill.ind = metadata[,1],  geom.ind = "point", 
-                          pointshape=21,addEllipses = F,pointsize=4 )
-    vals$pcafig = pcafig
   })
   
-  # downloading PDF -----
-  output$downloadPlot <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("PCA_Individuals_",input$title, gsub("/", "-", x), ".pdf", sep = "")
-    },
-    content = function(file) {
-      pdf(file, width=input$width,height=input$height, onefile = FALSE) # open the pdf device
-      grid.arrange(vals$pcafig)
-      dev.off()},
-    
-    contentType = "application/pdf"
-    
-  )
-  # downloading PNG -----
-  output$downloadPlotPNG <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("PCA_Individuals_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png, height = input$height_png, res = input$resolution_PNG)
-      grid.arrange(vals$pcafig)
-      dev.off()}
-  )
+  # ======= PCA Ind  
+  output$pcaind <- renderPlotly({
+    metadata = Metadastats() %>% dplyr::select(input$Vartoplotstats)
+    pcafig = fviz_pca_ind(pca(), fill.ind = metadata[,1],  geom.ind = "point", 
+                          pointshape=21,addEllipses = F,pointsize=4 )
+    vals$pcafigind = pcafig
+  })
+  
+  # downloading PCA Individuals PDF -----
+  output$downloadPlotPDF_pcaind <- func_save_pdf(titlepdf = "PCA_Individuals_", img = vals$pcafigind, width = input$width_pcaind, 
+                                                 height = input$height_pcaind)
+  
+  # downloading PCA Individuals PNG -----
+  output$downloadPlotPNG_pcaind <- func_save_png(titlepng = "PCA_Individuals_", img = vals$pcafigind, width = input$width_png_pcaind, 
+                                                 height = input$height_png_pcaind, res = input$resolution_PNG_pcaind)
+  
   # ======= PCA biplot
   output$pcabiplot <- renderPlotly({
-    Datastats <- as.matrix(Datastats())
     metadata = Metadastats() %>% dplyr::select(input$Vartoplotstats)
-    pca = FactoMineR::PCA(Datastats, scale.unit=T, graph=F)
     
-    pcabiplot = fviz_pca_biplot(pca, fill.ind = metadata[,1], geom.ind = "point", 
+    pcabiplot = fviz_pca_biplot(pca(), fill.ind = metadata[,1], geom.ind = "point", 
                                 pointshape=10,addEllipses = T,pointsize=2)
     vals$pcabiplot = pcabiplot
   })
   
-  # downloading PNG -----
-  output$downloadPlotPNG_biplot <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("PCA_Biplot",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_biplot, height = input$height_png_biplot, res = input$resolution_PNG_biplot)
-      grid.arrange(vals$pcabiplot)
-      dev.off()}
-  )
+  # downloading PCA Biplot PNG -----
+  output$downloadPlotPNG_biplot <- func_save_png(titlepng = "PCA_Biplot_", img = vals$pcabiplot, width = input$width_png_biplot, 
+                                                 height = input$height_png_biplot, res = input$resolution_PNG_biplot)
+  
   # ======= PCA component
   output$pcacomp <- renderPlotly({
-    Datastats <- as.matrix(Datastats())
     metadata = Metadastats() %>% dplyr::select(input$Vartoplotstats)
-    pca = FactoMineR::PCA(Datastats, scale.unit=T, graph=F)
     
-    pcacomp = fviz_eig(pca)
+    pcacomp = fviz_eig(pca())
     vals$pcacomp = pcacomp
   })
   
-  # downloading PNG -----
-  output$downloadPlotPNG_scree <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("PCA_Component_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_scree, height = input$height_png_scree, res = input$resolution_PNG_scree)
-      grid.arrange(vals$pcacomp)
-      dev.off()}
-  )
+  # downloading PCA Component PNG -----
+  output$downloadPlotPNG_scree <- func_save_png(titlepng = "PCA_Component_", img = vals$pcacomp, width = input$width_png_scree, 
+                                                height = input$height_png_scree, res = input$resolution_PNG_scree)
+  
   # ======= PCA variable importance
   output$variableimp <- renderPlotly({
-    Datastats <- as.matrix(Datastats())
-    pca = FactoMineR::PCA(Datastats, scale.unit=T, graph=F)
+    pca = pca()
     
     loadings <- data.frame(pca$var$coord[1:10,1:5])
     loadings$Symbol <- row.names(loadings)
@@ -1255,24 +1177,16 @@ server <- shinyServer(function(input, output, session)
     vals$pcavar = pcavar
   })
   
-  # downloading PNG -----
-  output$downloadPlotPNG_genepca <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("PCA_Importance_Genes_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_genepca, height = input$height_png_genepca, res = input$resolution_PNG_genepca)
-      grid.arrange(vals$pcavar)
-      dev.off()}
-  )
+  # downloading PCA Gene Importances PNG -----
+  output$downloadPlotPNG_genepca <- func_save_png(titlepng = "PCA_Importance_Genes_", img = vals$pcavar, width = input$width_png_genepca, 
+                                                  height = input$height_png_genepca, res = input$resolution_PNG_genepca)
   
+  # Stats Data Table 
   output$thetablestats <- DT::renderDataTable({
     DT::datatable(Datastats(), options = list(scrollX = TRUE))
   },
   server = TRUE)
-  # =========================================================== Clustring
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Clustring
   
   Datastatsclust <- reactive({switch(input$datasetstatsclust,"test-data" = test.data.statsclust(),"own" = own.data.statsclust())})
   
@@ -1325,56 +1239,39 @@ server <- shinyServer(function(input, output, session)
     
     vals$heatmapplot = heatmapplot
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_heatmap <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Heatmap_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_heatmap, height = input$height_png_heatmap, res = input$resolution_PNG_heatmap)
-      grid.arrange(vals$heatmapplot)
-      dev.off()}
-  )
+  # downloading Heatmap PNG -----
+  output$downloadPlotPNG_heatmap <- func_save_png(titlepng = "Heatmap_", img = vals$heatmapplot, width = input$width_png_heatmap, 
+                                                  height = input$height_png_heatmap, res = input$resolution_PNG_heatmap)
   
   output$missmap <- renderPlot({
     missmap(Datastatsclust())
   })
+  #++++++++++++++++++++++++++++++++++++++++++++++++++ Kmeans
   
+  kmeanss <- reactive({
+    kmeanss <- kmeans(scale(Datastatsclust()), input$kmeansbins, nstart = 25)
+  })
   ##========== Kmeans
   output$kmeanscluster <- renderPlotly({
-    res.km <- kmeans(scale(Datastatsclust()), input$kmeansbins, nstart = 25)
     # Clustering K-means montrant le groupe de chaque individu
-    kmeanscluster = fviz_cluster(res.km, data = Datastatsclust(),
-                                 # palette = c("#2E9FDF", "#00AFBB", "#E7B800", '#E87722'), 
+    kmeanscluster = fviz_cluster(kmeanss(), data = Datastatsclust(),
                                  geom = "point",
                                  ellipse.type = "convex", 
                                  ggtheme = theme_bw()
     )
     vals$kmeanscluster = kmeanscluster
   })
-  # downloading PNG -----
-  output$downloadPlotPNG_kmeanscluster <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Kmeans_clusters_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_kmeanscluster, height = input$height_png_kmeanscluster, res = input$resolution_PNG_kmeanscluster)
-      grid.arrange(vals$kmeanscluster)
-      dev.off()}
-  )
-  
+  # downloading Kmeans clusters PNG -----
+  output$downloadPlotPNG_kmeanscluster <- func_save_png(titlepng = "Kmeans_clusters_", img = vals$kmeanscluster, width = input$width_png_kmeanscluster, 
+                                                        height = input$height_png_kmeanscluster, res = input$resolution_PNG_kmeanscluster)
+  ##========== Kmeana annotate
   output$kmeansclusterannot <- renderPlotly({
-    res.km <- kmeans(scale(Datastatsclust()), input$kmeansbins, nstart = 25)
     # Réduction de dimension en utilisant l'ACP
     res.pca <- prcomp(Datastatsclust(),  scale = TRUE)
     # Coordonnées des individus
     ind.coord <- as.data.frame(get_pca_ind(res.pca)$coord)
     # Ajouter les clusters obtenus à l'aide de l'algorithme k-means
-    ind.coord$cluster <- factor(res.km$cluster)
+    ind.coord$cluster <- factor(kmeanss()$cluster)
     # Ajouter les groupes d'espèces issues du jeu de données initial
     metadata = Metadastatsclust() %>% dplyr::select(input$Vartoplotstatsclust)
     ind.coord$metadata <- metadata[,1]
@@ -1395,18 +1292,9 @@ server <- shinyServer(function(input, output, session)
     vals$kmeansclusterannot = kmeansclusterannot
   })
   
-  # downloading PNG -----
-  output$downloadPlotPNG_kmeansclusterannot <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Kmeans_clustrs_annotated_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_kmeansclusterannot, height = input$height_png_kmeansclusterannot, res = input$resolution_PNG_kmeansclusterannot)
-      grid.arrange(vals$kmeansclusterannot)
-      dev.off()}
-  )
+  # downloading Kmeans clusters annotation PNG -----
+  output$downloadPlotPNG_kmeansclusterannot <- func_save_png(titlepng = "Kmeans_clustrs_annotated_", img = vals$kmeansclusterannot, width = input$width_png_kmeansclusterannot, 
+                                                             height = input$height_png_kmeansclusterannot, res = input$resolution_PNG_kmeansclusterannot)
   
   output$kmeanselbow <- renderPlotly({
     kmeanselbow = fviz_nbclust(Datastatsclust(), kmeans, method = "wss") +
@@ -1415,18 +1303,9 @@ server <- shinyServer(function(input, output, session)
     vals$kmeanselbow = kmeanselbow
   })
   
-  # downloading PNG -----
-  output$downloadPlotPNG_kmeanselbow <- downloadHandler(
-    filename = function() {
-      x <- gsub(":", ".", format(Sys.time(), "%a_%b_%d_%Y_%X"))
-      paste("Kmeans_Elbow_method_",input$title, gsub("/", "-", x), ".png", sep = "")
-    },
-    content = function(file) {
-      
-      png(file, width = input$width_png_kmeanselbow, height = input$height_png_kmeanselbow, res = input$resolution_PNG_kmeanselbow)
-      grid.arrange(vals$kmeanselbow)
-      dev.off()}
-  )
+  # downloading Kmeans Elbow plot PNG -----
+  output$downloadPlotPNG_kmeanselbow <- func_save_png(titlepng = "Kmeans_Elbow_method_", img = vals$kmeanselbow, width = input$width_png_kmeanselbow, 
+                                                      height = input$height_png_kmeanselbow, res = input$resolution_PNG_kmeanselbow)
   
   #++++++++++++
   output$thetablestatsclust <- DT::renderDataTable({
@@ -1466,33 +1345,43 @@ server <- shinyServer(function(input, output, session)
   # cells with low nFeature_RNA
   subset_demo_seurat <- reactive({
     subset_demo_seurat <- subset(demo_seurat(), 
-                                   subset = percent.mt < 50 & 
-                                     nFeature_RNA > 200, 
-                                   invert = F)
+                                 subset = percent.mt < 50 & 
+                                   nFeature_RNA > 200, 
+                                 invert = F)
     subset_demo_seurat <- func_quick_process(subset_demo_seurat)
+    subset_demo_seurat <- func_get_annotation(subset_demo_seurat)
   })
-  # QC plots – check mitochondrial gene percentages
+  # =============================. QC plots – check mitochondrial gene percentages
   output$rhapsodymtgene <- renderPlotly({
     
     p <- Seurat::VlnPlot(demo_seurat(), 
-                          features = "percent.mt", 
-                          group.by = "seurat_clusters") + 
+                         features = "percent.mt", 
+                         group.by = "seurat_clusters") + 
       Seurat::NoLegend() + 
       ggtitle("MT Gene %")
     p
+    vals$mtgene <- p
   })
   output$rhapsodymtgenefilter <- renderPlotly({
-   
+    
     p2 <- Seurat::VlnPlot(subset_demo_seurat(), 
                           features = "percent.mt", 
                           group.by = "seurat_clusters") + 
       Seurat::NoLegend() + 
       ggtitle("MT Gene % After Filter")
-    
     p2
+    
+    vals$mtgenefilter <- p2
   })
+  # downloading QC plots – check mitochondrial gene percentages PNG -----
+  # downloading QC plots – check mitochondrial gene percentages PNG -----
+  output$downloadPlotPNG_mtgene <- func_save_png(titlepng = "MT_Gene_%_", img = vals$mtgene, width = input$width_png_mtgene, 
+                                                 height = input$height_png_mtgene, res = input$resolution_PNG_mtgene)
+  # downloading QC plots – check mitochondrial gene percentages after filtering PNG -----
+  output$downloadPlotPNG_mtgenefilter <- func_save_png(titlepng = "MT_Gene_%_After_Filter_", img = vals$mtgenefilter, width = input$width_png_mtgenefilter, 
+                                                       height = input$height_png_mtgenefilter, res = input$resolution_PNG_mtgenefilter)
   
-  # Feature Scatter 
+  # =================================. Feature Scatter 
   output$rhapsodyfeaturescatter <- renderPlotly({
     p3 <- Seurat::FeatureScatter(demo_seurat(), 
                                  feature1 = "nCount_RNA", 
@@ -1503,6 +1392,7 @@ server <- shinyServer(function(input, output, session)
       ggtitle("Feature Scatter plot")
     
     p3
+    vals$featurescatter <- p3
   })
   
   output$rhapsodyfeaturescatterfilter <- renderPlotly({
@@ -1515,27 +1405,201 @@ server <- shinyServer(function(input, output, session)
       ggtitle("Feature Scatter plot After Filter")
     
     p4
+    vals$featurescatterfilter <- p4
   })
+  # downloading Feature Scatter plot PNG -----
+  output$downloadPlotPNG_featurescatter <- func_save_png(titlepng = "Feature_Scatter_plot_", img = vals$featurescatter, width = input$width_png_featurescatter, 
+                                                         height = input$height_png_featurescatter, res = input$resolution_PNG_featurescatter)
+  # downloading Feature Scatter after filtering plot PNG -----
+  output$downloadPlotPNG_featurescatterfilter <- func_save_png(titlepng = "Feature_Scatter_plot_", img = vals$featurescatterfilter, width = input$width_png_featurescatterfilter, 
+                                                               height = input$height_png_featurescatterfilter, res = input$resolution_PNG_featurescatterfilter)
   
+  # ===================================. clustering plots
   output$rhapsodyumap <- renderPlotly({
     p5 <- Seurat::DimPlot(subset_demo_seurat(), 
                           reduction = "umap", 
                           group.by = "seurat_clusters") + 
       ggtitle("UMAP Plot")
+    vals$umap <- p5
   })
-  
+  # downloading Rhapsody Umap plot PNG -----
+  output$downloadPlotPNG_umap <- func_save_png(titlepng = "Umap_plot_", img = vals$umap, width = input$width_png_umap, 
+                                               height = input$height_png_umap, res = input$resolution_PNG_umap)
   output$rhapsodytsne <- renderPlotly({
-    p5 <- Seurat::DimPlot(subset_demo_seurat(), 
+    p6 <- Seurat::DimPlot(subset_demo_seurat(), 
                           reduction = "tsne", 
                           group.by = "seurat_clusters") + 
       ggtitle("TSNE Plot")
+    vals$tsne <- p6
   })
+  # downloading Rhapsody TSNE plot PNG -----
+  output$downloadPlotPNG_tsne <- func_save_png(titlepng = "Tsne_plot_", img = vals$tsne, width = input$width_png_tsne, 
+                                               height = input$height_png_tsne, res = input$resolution_PNG_tsne)
   
   output$rhapsodypca <- renderPlotly({
-    p5 <- Seurat::DimPlot(subset_demo_seurat(), 
+    p7 <- Seurat::DimPlot(subset_demo_seurat(), 
                           reduction = "pca", 
                           group.by = "seurat_clusters") + 
       ggtitle("PCA Plot")
+    vals$rhapsodypca <- p7
+  })
+  # downloading Rhapsody PCA plot PNG -----
+  output$downloadPlotPNG_ypca <- func_save_png(titlepng = "PCA_plot_", img = vals$rhapsodypca, width = input$width_png_ypca, 
+                                               height = input$height_png_ypca, res = input$resolution_PNG_ypca)
+  
+  # ============================================================================. SingleR plots
+  output$rhapsodyplotScoreHeatmap <- renderPlot({
+    subset_demo_seurat <- subset_demo_seurat()
+    p_cell_1 <- plotScoreHeatmap(subset_demo_seurat@misc$SingleR_results,
+                                 show_colnames = F)
+    p_cell_1
+    vals$plotScoreHeatmap <- p_cell_1
+  })
+  # downloading SingleR plotScoreHeatmap plot PNG -----
+  output$downloadPlotPNG_plotScoreHeatmap <- func_save_png(titlepng = "SingleR_plotScoreHeatmap_", img = vals$plotScoreHeatmap, width = input$width_png_plotScoreHeatmap, 
+                                                           height = input$height_png_plotScoreHeatmap, res = input$resolution_PNG_plotScoreHeatmap)
+  
+  output$rhapsodyumapcelltype <- renderPlotly({
+    # Display cells in UMAP plot
+    p_cell_2 <- Seurat::DimPlot(subset_demo_seurat(),
+                                group.by = "cell_type") +
+      ggtitle("SINGLER UMAP CELL TYPE")
+    vals$umapcelltype <- p_cell_2
+  })
+  # downloading SingleR UMAP Cell type plot PNG -----
+  output$downloadPlotPNG_umapcelltype <- func_save_png(titlepng = "SingleR_UMAP_cell_type_", img = vals$umapcelltype, width = input$width_png_umapcelltype, 
+                                                       height = input$height_png_umapcelltype, res = input$resolution_PNG_umapcelltype)
+  
+  # ============================================================================. Find doublets
+  # BD provided doublet rates with different cell load numbers
+  rhapsody_doublet_rate <- data.frame(
+    "cell_num" = c(100,500,1000*(1:20)), 
+    "rate" = c(0, 0.1, 0.2, 0.5, 0.7, 1, 
+               1.2, 1.4, 1.7, 1.9, 2.1, 
+               2.4, 2.6, 2.8, 3.1, 3.3, 
+               3.5, 3.8, 4, 4.2, 4.5 , 4.7))
+  
+  # Build a linear model to calculate theoretical doublet rate
+  model_rhap <- lm(rate ~ cell_num, 
+                   rhapsody_doublet_rate)
+  # Run find doublets func
+  subset_demo_seurat1 <- reactive({
+    subset_demo_seurat1 <- func_get_doublets(subset_demo_seurat(),
+                                             pc = 1:15)
+  })
+  output$rhapsodydoublet <- renderPlotly({
+    # Visualize the result
+    p_cell_3 <- DimPlot(subset_demo_seurat1(), 
+                        group.by = "doublet_check") + 
+      ggtitle("Doublet Check Plot")
+    vals$doublet <- p_cell_3
+  })
+  # downloading doublet rates plot PNG -----
+  output$downloadPlotPNG_doublet <- func_save_png(titlepng = "Doublet_Check_plot_", img = vals$doublet, width = input$width_png_doublet, 
+                                                  height = input$height_png_doublet, res = input$resolution_PNG_doublet)
+  
+  # ============================================================================. Finding marker genes
+  output$rhapsodymarkergenes <- renderPlotly({
+    # use function to get marker genes
+    subset_demo1_DGEs <- func_get_marker_genes(subset_demo_seurat1(),
+                                               p_adj_cutoff = 0.05,
+                                               log2FC_cutoff = 1,
+                                               view_top_X_genes = 5) 
+    
+    # visualise top genes on dotplot
+    p_cell_4 <- DotPlot(subset_demo_seurat1(), 
+                        features = subset_demo1_DGEs$top_cell_gene, 
+                        group.by = "cell_type") + 
+      coord_flip() +
+      RotatedAxis() +
+      ggtitle("Marker Genes plot")
+    vals$markergenes <- p_cell_4
+  })
+  # downloading Marker Genes plot PNG -----
+  output$downloadPlotPNG_markergenes <- func_save_png(titlepng = "Marker_Genes_plot_", img = vals$markergenes, width = input$width_png_markergenes, 
+                                                      height = input$height_png_markergenes, res = input$resolution_PNG_markergenes)
+  
+  # ============================================================================. Pseudotime Analysis
+  subset_demo_slingshot_1 <- reactive({
+    # use function to get results
+    subset_demo_slingshot_1 <- func_slingshot(subset_demo_seurat1())
+  })
+  # ++++++++++++++++++++++ Pseudotime
+  output$rhapsodypseudotimelineage <- renderPlot({
+    
+    subset_demo_seurat_1 <- subset_demo_seurat1()
+    
+    pt_lineages <- slingshot::slingPseudotime(subset_demo_slingshot_1())
+    
+    # add Slingshot results to the input Seurat object
+    lineages <- sapply(slingLineages(colData(subset_demo_slingshot_1())$slingshot), 
+                       paste, 
+                       collapse = " -> ")
+    
+    subset_demo_seurat_1@meta.data[lineages] <- pt_lineages
+    # visualization
+    
+    # display every lineage pseudotime
+    name_lineage <- colnames(subset_demo_seurat_1@meta.data)[grepl("->",
+                                                                   colnames(subset_demo_seurat_1@meta.data))]
+    
+    p_ss_1 <- list()
+    
+    Idents(subset_demo_seurat_1) <- "smk"
+    
+    for (i in name_lineage) {
+      
+      p_ss_1[[i]] <- Seurat::FeaturePlot(subset(subset_demo_seurat_1, 
+                                                idents = c("SampleTag01_hs", 
+                                                           "SampleTag02_hs")),  
+                                         features = i, split.by = "smk") & 
+        theme(legend.position="top") &
+        scale_color_viridis_c() 
+    }
+    
+    wrap_plots(p_ss_1, 
+               ncol = 1)
+  })
+  
+  output$rhapsodypseudotimesampletag <- renderPlot({
+    subset_demo_seurat_1 <- subset_demo_seurat1()
+    
+    pt_lineages <- slingshot::slingPseudotime(subset_demo_slingshot_1())
+    
+    # add Slingshot results to the input Seurat object
+    lineages <- sapply(slingLineages(colData(subset_demo_slingshot_1())$slingshot), 
+                       paste, 
+                       collapse = " -> ")
+    
+    subset_demo_seurat_1@meta.data[lineages] <- pt_lineages
+    
+    # display every lineage pseudotime
+    name_lineage <- colnames(subset_demo_seurat_1@meta.data)[grepl("->",
+                                                                   colnames(subset_demo_seurat_1@meta.data))]
+    
+    p_ss_celltype <- list()
+    
+    Idents(subset_demo_seurat_1) <- "smk"
+    
+    for (i in name_lineage) {
+      
+      p_ss_celltype[[i]] <- ggplot(subset(subset_demo_seurat_1, 
+                                          idents = c("Multiplet", 
+                                                     "Undetermined"), 
+                                          invert = T)@meta.data, 
+                                   aes(x = .data[[i]], 
+                                       y = cell_type, 
+                                       colour = cell_type)) +
+        geom_point() +
+        geom_jitter(width = 0.1, 
+                    height = 0.2) +
+        theme_gray() +
+        theme(legend.position = "none") +
+        facet_grid(. ~ smk )
+    }
+    
+    wrap_plots(p_ss_celltype, 
+               ncol = 2)
   })
   ## =======================================================================================. End Server =========================================================================================================#
   # This are for the server close
