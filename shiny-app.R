@@ -33,7 +33,7 @@ library(slingshot) #BiocManager::install('slingshot')
 library(colorRamps)
 library(CellChat) #remotes::install_github('sqjin/CellChat')
 source("/Users/lamine/Documents/shinydashboard/INEM/Rhapsody_funs.R")
-source("/Users/lamine/Documents/shinydashboard/INEM/Cell_type_annotation.R")
+source("/Users/lamine/Documents/shinydashboard/INEM/Util.R")
 
 ## ==================================================================== Datasets ============================================================================================##
 data(breast.TCGA) # from the mixomics package.
