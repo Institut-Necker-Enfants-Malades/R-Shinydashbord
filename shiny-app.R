@@ -510,7 +510,7 @@ dashbody <- dashboardBody(
     tabItem(tabName = 'diffexp',
             fluidPage(
               sidebarLayout(
-                sidebarPanel(width = 2, height = 1170,
+                sidebarPanel(width = 3, height = 1170,
                              collapsible = TRUE,
                              title = 'Side bar',
                              status = 'primary', solidHeader = TRUE,
@@ -520,16 +520,21 @@ dashbody <- dashboardBody(
                              p(style="text-align: justify;","The uploading data should be in the format :ID, logFC, Pvalue."),
                              fileInput(inputId = 'filediff', 'ID, logFC, Pvalue',
                                        accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
+                             hr(style="border-color: blue;"),
+                             selectInput("diffenrich", "Choose a database:", choices = dbs$libraryName, selected = 'GO_Biological_Process_2023'),
+                             actionButton('diffsubmit', strong('Submit Enrichment'))
                              # Placeholder for input selection
-                             fluidRow(
-                               column(6, selectInput(inputId='Vartoplotdiff',label = 'Waiting for data plot',choices = NULL )),
-                               column(6, checkboxGroupInput(inputId='Vardatabasediff',label = 'Choose database',choices = NULL ))
-                             )
+                             # fluidRow(
+                             #   column(6, selectInput(inputId='Vartoplotdiff',label = 'Waiting for data plot',choices = NULL )),
+                             #   column(6, checkboxGroupInput(inputId='Vardatabasediff',label = 'Choose database',choices = NULL ))
+                             # )
                 ),
-                mainPanel( width = 10,
+                mainPanel( width = 9,
                            tabsetPanel(
                              tabPanel(title='Volcano plot',
+                                      p(),
                                       textOutput("number_of_points"),
+                                      p(),
                                       plotlyOutput(outputId = 'Volcanoplot',height = "600px"),
                                       h4(strong("Exporting the Vocano plot")),
                                       fluidRow(
@@ -539,14 +544,24 @@ dashbody <- dashboardBody(
                                         column(3,style = "margin-top: 25px;",downloadButton('downloadPlotPNG_volcano','Download PNG'))
                                       )
                              ),
-                             tabPanel(title='Summary Table',
+                             tabPanel(title='Data Table with links',
                                       #Placeholder for plot
-                                      h2("Data table:"),
-                                      DT::dataTableOutput(outputId = 'summarytable'),
+                                      #selectInput("species", label = "Select relevant species",species,selected = "HUMAN"),
+                                      h2("Data table with database links:"),
+                                      div(DT::dataTableOutput(outputId = 'summarytable')),
+                                      
+                             ),
+                             tabPanel(title='Summary count table',
                                       h2("The summary count table:"),
                                       DT::dataTableOutput(outputId = 'summarytablecount')
                              ),
                              tabPanel(title='Gene Set Enrichment',
+                                      h4(strong("Top 10 gene based on the Pvalue")),
+                                      DT::dataTableOutput(outputId = 'Top10gene'),
+                                      p(),
+                                      h4(strong("Enrichment plot on Top 10 gene based on the Pvalue")),
+                                      p(style="text-align: justify;", "If you want to get the enrichment plot based on these top 10 gene, click on the", strong("Submit Enrichment"), "buttom."),
+                                      plotlyOutput(outputId = 'diffenrichplot',height = "600px"),
                                       
                              )
                            ) #tabsetPanel
@@ -657,7 +672,16 @@ dashbody <- dashboardBody(
                        p(style="text-align: justify;","The uploading data should be the .RDS output results of Seven Bridges platform."),
                        fileInput(inputId = 'filerhapsody', 'Seurat RDS file from SevenBridges',
                                  accept=c('rds', '.rds')),
+                       hr(style="border-color: blue;"),
+                       # Choose number of bins
+                       p(style="text-align: justify;","Set the filter parameters."),
+                       numericInput(inputId='sliderrhapsodymtgene',
+                                    label = 'Choose a MT Gene % < than ', value = 50, min = 5, max = 200),
                        
+                       numericInput(inputId='sliderrhapsodyfeatures',
+                                    label = 'Choose a number for minimum features > than', value = 200, min = 100, max = 5000),
+                       hr(style="border-color: blue;"),
+                       actionButton("submitrhapsody", strong("Submit Analysis")),
           ),
           mainPanel( width = 9,
                      tabsetPanel(
@@ -940,7 +964,7 @@ server <- shinyServer(function(input, output, session)
   
   #++++++++++++++++++++++++++++++++++++++++ Data table
   output$thetable <- DT::renderDataTable({
-    DT::datatable(Datagraph(), rownames = TRUE, options = list(scrollX = TRUE))
+    DT::datatable(Datagraph(), filter = 'top', rownames = TRUE, options = list(scrollX = TRUE))
   },
   server = TRUE)
   
@@ -965,7 +989,7 @@ server <- shinyServer(function(input, output, session)
   Diffdata <- reactive({
     Datadiff = data.frame(Datadiff())
     # add a column of NAs
-    Datadiff$Direction <- "NO"
+    Datadiff$Direction <- "NO_Signif"
     # if log2Foldchange > 0.6 and pvalue < 0.05, set as "UP" 
     Datadiff$Direction[Datadiff$logFC > 0.6 & Datadiff$Pvalue < 0.05] <- "UP"
     # if log2Foldchange < -0.6 and pvalue < 0.05, set as "DOWN"
@@ -974,7 +998,7 @@ server <- shinyServer(function(input, output, session)
     # Now write down the name of genes beside the points...
     # Create a new column "gene_name" to de, that will contain the name of genes differentially expressed (NA in case they are not)
     Datadiff$gene_name <- NA
-    Datadiff$gene_name[Datadiff$Direction != "NO"] <- Datadiff$ID[Datadiff$Direction != "NO"]
+    Datadiff$gene_name[Datadiff$Direction != "NO_Signif"] <- Datadiff$ID[Datadiff$Direction != "NO_Signif"]
     Diffdata <- Datadiff
   })
   
@@ -984,7 +1008,7 @@ server <- shinyServer(function(input, output, session)
     dat$logP <- -log10(dat$Pvalue)
     total <- as.numeric(dim(dat)[1])
     totalDown <- as.numeric(dim(dat[dat$Direction=='DOWN',])[1])
-    totalNO <- as.numeric(dim(dat[dat$Direction=='NO',])[1])
+    totalNO <- as.numeric(dim(dat[dat$Direction=='NO_Signif',])[1])
     totalUP <- as.numeric(dim(dat[dat$Direction=='UP',])[1])
     
     cat('\n There are a total of ', total, ' where '  , totalDown, ' are dowregulated ', totalUP, ' are upregulated and ', totalNO, ' are none, ', 
@@ -1008,20 +1032,99 @@ server <- shinyServer(function(input, output, session)
   # downloading Volcano plot PNG -----
   output$downloadPlotPNG_volcano <- func_save_png(titlepng = "Volcanoplot_", img = vals$volcano_gplot, width = input$width_png_volcano, 
                                                   height = input$height_png_volcano, res = input$resolution_PNG_volcano)
+  # Filter data and do ID conversion
+  type.of.data <- function () {
+    
+    dat <- Diffdata();
+    
+    
+    dat <- dat[, c("ID","logFC","Pvalue", "Direction")]
+    
+    ID.conversion <- read.csv(system.file("extdata","uniprot.d.anno.210905.csv",package = "ggVolcanoR"))
+    dat <- as.data.frame(dat)
+    dat <- dat[order(dat$Pvalue),]
+    rownames(dat) <- 1:dim(dat)[1]
+    names(ID.conversion) <- c("Ensembl","Uniprot_human","UNIPROT","Chrom","Gene.Name","Biotype")
+    
+    dat.top <- merge(dat,ID.conversion,by.x="ID",by.y="Gene.Name", all.x=T)
+    dat.top[is.na(dat.top)] <- "No_ID"
+    names(dat.top) <- c("ID","logFC","Pvalue", "Direction","protein_atlas","UniProt_ID","UniProt_human","chrom","Biotype")
+    type.of.data <- dat.top
+    
+  }
   
   #======
   output$summarytable <- DT::renderDataTable({
-    dat <- data.frame(Diffdata())
-    dat <- DT::datatable(dat, options = list(scrollX = TRUE))
-    dat
+    top <- type.of.data()
+    # dat <- data.frame(Diffdata())
+    # SYMBOL_list <- as.data.frame(paste(dat$ID,"_",input$species,sep=""))
+    # names(SYMBOL_list) <- "list"
+    
+    top$HGNC <- paste('<a href=https://www.genenames.org/tools/search/#!/?query=',top$ID,' target="_blank" class="btn btn-link"','>',top$ID,'</a>',sep="")
+    top$GeneCards <- paste('<a href=https://www.genecards.org/cgi-bin/carddisp.pl?gene=',top$ID,' target="_blank" class="btn btn-link"','>',top$ID,'</a>',sep="")
+    top$Protein_atlas <- paste('<a href=https://www.proteinatlas.org/',top$protein_atlas,' target="_blank" class="btn btn-link"','>',top$protein_atlas,'</a>',sep="")
+    # top$Human_Uniprot <- paste('<a href=https://www.uniprot.org/uniprot/?query=',top$UniProt_human,' target="_blank" class="btn btn-link"','>',top$UniProt_human,"</a>", sep="")
+    top$UniProt <- paste('<a href=https://www.uniprot.org/uniprot/?query=',top$UniProt_ID,' target="_blank" class="btn btn-link"','>',top$UniProt_ID,'</a>',sep="")
+    top$Ensembl <- paste('<a href=https://www.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=',top$protein_atlas,' target="_blank" class="btn btn-link"','>',top$protein_atlas,'</a>',sep="")
+    top <- top[,!names(top) %in% c("protein_atlas","UniProt_ID","UniProt_human","Gene.Name")]
+    top <- top[order(top$Pvalue),]
+    
+    top <- DT::datatable(top, escape = FALSE, filter = 'top', options = list(scrollX = TRUE), rownames = FALSE) %>%
+      formatStyle('logFC', 
+                  backgroundColor = styleInterval(c(-0.6,0.6), c('#abd7eb', '#D2D2CF',"#ff6961")),
+                  color = styleInterval(c(-0.6,0.6), c('#181A18', '#181A18', '#181A18')),
+                  fontWeight = styleInterval(c(-0.6,0.6), c('bold', 'normal','bold'))) %>% 
+      formatStyle('Pvalue',
+                  backgroundColor = styleInterval(c(0.05), c('#181A18', '#D2D2CF')),
+                  color = styleInterval(c(0.05), c('#d99058',  '#181A18')),
+                  fontWeight = styleInterval(0.05, c('bold', 'normal'))
+      )
   })
   
   output$summarytablecount <- DT::renderDataTable({
     dat <- data.frame(Diffdata())
     dat <- dat %>% dplyr::count(Direction)
+    colnames(dat) <- c('Direction', 'Count')
+    # Add Percentage column
+    dat <- dat %>% 
+      dplyr::mutate(Percentage=round(Count/sum(Count)*100,2))
+    # Add total row 
+    dat[nrow(dat) +1,] = c('Total', sum(dat$Count), sum(dat$Percentage))
+    # Add Precentage sign
+    dat <- dat %>% 
+      dplyr::mutate(Percentage=paste0(Percentage, '%'))
+    
     DT::datatable(dat, options = list(scrollX = TRUE))
+    
   })
   
+  # Select 10 top gene based on their Pvalue
+  Top10gene <- reactive({
+    Top10gene <- data.frame(Diffdata())
+    Top10gene <- Top10gene %>% 
+      dplyr::arrange(Pvalue) %>%
+      dplyr::slice(1:10)
+  })
+  
+  output$Top10gene <- DT::renderDataTable({
+    Top10gene()
+  })
+  # Réagir lorsque l'utilisateur clique sur le bouton Soumettre
+  observeEvent(input$diffsubmit, {
+    Top10gene <- data.frame(Top10gene())
+    gene_list <- Top10gene$ID
+    # Exécuter l'analyse d'enrichissement de gènes avec enrichR
+    enrichment_result <- enrichr(gene_list, dbs$libraryName)
+    
+    output$diffenrichplot <- renderPlotly({
+      
+      enrichment =  plotEnrich(enrichment_result[[input$diffenrich]], showTerms = 20, numChar = 50,
+                               y = "Count", orderBy = "P.value", title = "Enrichment analysis by Enrichr",
+                               xlab = "Enriched terms")
+    })
+    
+  })
+  ## =========================================================================.  Enrichment.  =============================================================================== #
   ##### Enrichment
   # Réagir lorsque l'utilisateur clique sur le bouton Soumettre
   observeEvent(input$submit, {
@@ -1036,13 +1139,13 @@ server <- shinyServer(function(input, output, session)
       head(enrichment_result[[input$databaseenrich]])
     })
     
-    output$enrichrdatabase <- DT::renderDataTable({
-      DT::datatable(dbs, rownames = dbs$libraryName, options = list(scrollX = TRUE))
-    },
-    server = TRUE)
-    
     output$thetableenrich <- DT::renderDataTable({
-      DT::datatable(enrichment_result[[input$databaseenrich]], rownames = TRUE, options = list(scrollX = TRUE))
+      DT::datatable(enrichment_result[[input$databaseenrich]], filter = 'top', rownames = TRUE, options = list(scrollX = TRUE)) %>%
+        formatStyle('P.value',
+                    backgroundColor = styleInterval(c(0.05), c('#181A18', '#D2D2CF')),
+                    color = styleInterval(c(0.05), c('#d99058',  '#181A18')),
+                    fontWeight = styleInterval(0.05, c('bold', 'normal'))
+        )
     },
     server = TRUE)
     
@@ -1059,6 +1162,10 @@ server <- shinyServer(function(input, output, session)
                                                      height = input$height_png_enrichr, res = input$resolution_PNG_enrichr)
   })
   
+  output$enrichrdatabase <- DT::renderDataTable({
+    DT::datatable(dbs, rownames = dbs$libraryName, options = list(scrollX = TRUE))
+  },
+  server = TRUE)
   ## =========================================================================.  Statistical Panel results.  =============================================================================== #
   
   # ===========================================================PCA
@@ -1183,7 +1290,7 @@ server <- shinyServer(function(input, output, session)
   
   # Stats Data Table 
   output$thetablestats <- DT::renderDataTable({
-    DT::datatable(Datastats(), options = list(scrollX = TRUE))
+    DT::datatable(Datastats(), filter = 'top', options = list(scrollX = TRUE))
   },
   server = TRUE)
   #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Clustring
@@ -1244,7 +1351,9 @@ server <- shinyServer(function(input, output, session)
                                                   height = input$height_png_heatmap, res = input$resolution_PNG_heatmap)
   
   output$missmap <- renderPlot({
-    missmap(Datastatsclust())
+    d <- dist(Datastatsclust())
+    hcl <- hclust(d)
+    plot(hcl)
   })
   #++++++++++++++++++++++++++++++++++++++++++++++++++ Kmeans
   
@@ -1309,13 +1418,13 @@ server <- shinyServer(function(input, output, session)
   
   #++++++++++++
   output$thetablestatsclust <- DT::renderDataTable({
-    DT::datatable(Datastatsclust(), options = list(scrollX = TRUE))
+    DT::datatable(Datastatsclust(), filter = 'top', options = list(scrollX = TRUE))
   },
   server = TRUE)
   ## =======================================================================================. IGV =========================================================================================================#
   observeEvent(input$genomeChooser, ignoreInit=FALSE, {
     newGenome <- input$genomeChooser
-    genomeSpec <- parseAndValidateGenomeSpec(genomeName=newGenome,  initialLocus="all")
+    genomeSpec <- parseAndValidateGenomeSpec(genomeName=newGenome,  initialLocus="BRCA1")
     output$igvShiny <- renderIgvShiny(
       igvShiny(genomeSpec)
     )
@@ -1324,7 +1433,7 @@ server <- shinyServer(function(input, output, session)
   Datastatrhapsody <- reactive({switch(input$datasetrhapsody,"test-data" = test.data.rhapsody(),"own" = own.data.rhapsody())})
   
   test.data.rhapsody <- reactive ({ 
-    readRDS("/Users/lamine/INEM/Projets/Peter/Test/BD-Demo-7Bridges-WTA_AbSeq_SMK/Protocol-rerun_Seurat.rds")
+    readRDS("/Users/lamine/Tutorial/Data Visualization/Shiny App in genomics/Protocol-rerun_Seurat.rds")
   })
   
   own.data.rhapsody <- reactive({
@@ -1334,273 +1443,289 @@ server <- shinyServer(function(input, output, session)
     dataframe = readRDS(input$filerhapsody$datapath)
     
   })
-  
-  demo_seurat <- reactive({
-    demo_seurat <- func_get_AbSeq(demo_seurat = Datastatrhapsody())
-    demo_seurat$smk <- demo_seurat$Sample_Name
-    demo_seurat <- func_quick_process(demo_seurat)
-  })
-  
-  # filter out cells with MT genes percentage > 50 (%) and 
-  # cells with low nFeature_RNA
-  subset_demo_seurat <- reactive({
-    subset_demo_seurat <- subset(demo_seurat(), 
-                                 subset = percent.mt < 50 & 
-                                   nFeature_RNA > 200, 
-                                 invert = F)
-    subset_demo_seurat <- func_quick_process(subset_demo_seurat)
-    subset_demo_seurat <- func_get_annotation(subset_demo_seurat)
-  })
-  # =============================. QC plots – check mitochondrial gene percentages
-  output$rhapsodymtgene <- renderPlotly({
+  # Réagir lorsque l'utilisateur clique sur le bouton Soumettre analyse
+  observeEvent(input$submitrhapsody, {
     
-    p <- Seurat::VlnPlot(demo_seurat(), 
-                         features = "percent.mt", 
-                         group.by = "seurat_clusters") + 
-      Seurat::NoLegend() + 
-      ggtitle("MT Gene %")
-    p
-    vals$mtgene <- p
-  })
-  output$rhapsodymtgenefilter <- renderPlotly({
+    demo_seurat <- reactive({
+      demo_seurat <- func_get_AbSeq(demo_seurat = Datastatrhapsody())
+      demo_seurat$smk <- demo_seurat$Sample_Name
+      demo_seurat <- func_quick_process(demo_seurat)
+    })
     
-    p2 <- Seurat::VlnPlot(subset_demo_seurat(), 
-                          features = "percent.mt", 
-                          group.by = "seurat_clusters") + 
-      Seurat::NoLegend() + 
-      ggtitle("MT Gene % After Filter")
-    p2
-    
-    vals$mtgenefilter <- p2
-  })
-  # downloading QC plots – check mitochondrial gene percentages PNG -----
-  # downloading QC plots – check mitochondrial gene percentages PNG -----
-  output$downloadPlotPNG_mtgene <- func_save_png(titlepng = "MT_Gene_%_", img = vals$mtgene, width = input$width_png_mtgene, 
-                                                 height = input$height_png_mtgene, res = input$resolution_PNG_mtgene)
-  # downloading QC plots – check mitochondrial gene percentages after filtering PNG -----
-  output$downloadPlotPNG_mtgenefilter <- func_save_png(titlepng = "MT_Gene_%_After_Filter_", img = vals$mtgenefilter, width = input$width_png_mtgenefilter, 
-                                                       height = input$height_png_mtgenefilter, res = input$resolution_PNG_mtgenefilter)
-  
-  # =================================. Feature Scatter 
-  output$rhapsodyfeaturescatter <- renderPlotly({
-    p3 <- Seurat::FeatureScatter(demo_seurat(), 
-                                 feature1 = "nCount_RNA", 
-                                 feature2 = "nFeature_RNA", 
-                                 group.by = "seurat_clusters") + 
-      scale_x_log10() +
-      scale_y_log10() +
-      ggtitle("Feature Scatter plot")
-    
-    p3
-    vals$featurescatter <- p3
-  })
-  
-  output$rhapsodyfeaturescatterfilter <- renderPlotly({
-    p4 <- Seurat::FeatureScatter(subset_demo_seurat(), 
-                                 feature1 = "nCount_RNA", 
-                                 feature2 = "nFeature_RNA", 
-                                 group.by = "seurat_clusters") + 
-      scale_x_log10() +
-      scale_y_log10() +
-      ggtitle("Feature Scatter plot After Filter")
-    
-    p4
-    vals$featurescatterfilter <- p4
-  })
-  # downloading Feature Scatter plot PNG -----
-  output$downloadPlotPNG_featurescatter <- func_save_png(titlepng = "Feature_Scatter_plot_", img = vals$featurescatter, width = input$width_png_featurescatter, 
-                                                         height = input$height_png_featurescatter, res = input$resolution_PNG_featurescatter)
-  # downloading Feature Scatter after filtering plot PNG -----
-  output$downloadPlotPNG_featurescatterfilter <- func_save_png(titlepng = "Feature_Scatter_plot_", img = vals$featurescatterfilter, width = input$width_png_featurescatterfilter, 
-                                                               height = input$height_png_featurescatterfilter, res = input$resolution_PNG_featurescatterfilter)
-  
-  # ===================================. clustering plots
-  output$rhapsodyumap <- renderPlotly({
-    p5 <- Seurat::DimPlot(subset_demo_seurat(), 
-                          reduction = "umap", 
-                          group.by = "seurat_clusters") + 
-      ggtitle("UMAP Plot")
-    vals$umap <- p5
-  })
-  # downloading Rhapsody Umap plot PNG -----
-  output$downloadPlotPNG_umap <- func_save_png(titlepng = "Umap_plot_", img = vals$umap, width = input$width_png_umap, 
-                                               height = input$height_png_umap, res = input$resolution_PNG_umap)
-  output$rhapsodytsne <- renderPlotly({
-    p6 <- Seurat::DimPlot(subset_demo_seurat(), 
-                          reduction = "tsne", 
-                          group.by = "seurat_clusters") + 
-      ggtitle("TSNE Plot")
-    vals$tsne <- p6
-  })
-  # downloading Rhapsody TSNE plot PNG -----
-  output$downloadPlotPNG_tsne <- func_save_png(titlepng = "Tsne_plot_", img = vals$tsne, width = input$width_png_tsne, 
-                                               height = input$height_png_tsne, res = input$resolution_PNG_tsne)
-  
-  output$rhapsodypca <- renderPlotly({
-    p7 <- Seurat::DimPlot(subset_demo_seurat(), 
-                          reduction = "pca", 
-                          group.by = "seurat_clusters") + 
-      ggtitle("PCA Plot")
-    vals$rhapsodypca <- p7
-  })
-  # downloading Rhapsody PCA plot PNG -----
-  output$downloadPlotPNG_ypca <- func_save_png(titlepng = "PCA_plot_", img = vals$rhapsodypca, width = input$width_png_ypca, 
-                                               height = input$height_png_ypca, res = input$resolution_PNG_ypca)
-  
-  # ============================================================================. SingleR plots
-  output$rhapsodyplotScoreHeatmap <- renderPlot({
-    subset_demo_seurat <- subset_demo_seurat()
-    p_cell_1 <- plotScoreHeatmap(subset_demo_seurat@misc$SingleR_results,
-                                 show_colnames = F)
-    p_cell_1
-    vals$plotScoreHeatmap <- p_cell_1
-  })
-  # downloading SingleR plotScoreHeatmap plot PNG -----
-  output$downloadPlotPNG_plotScoreHeatmap <- func_save_png(titlepng = "SingleR_plotScoreHeatmap_", img = vals$plotScoreHeatmap, width = input$width_png_plotScoreHeatmap, 
-                                                           height = input$height_png_plotScoreHeatmap, res = input$resolution_PNG_plotScoreHeatmap)
-  
-  output$rhapsodyumapcelltype <- renderPlotly({
-    # Display cells in UMAP plot
-    p_cell_2 <- Seurat::DimPlot(subset_demo_seurat(),
-                                group.by = "cell_type") +
-      ggtitle("SINGLER UMAP CELL TYPE")
-    vals$umapcelltype <- p_cell_2
-  })
-  # downloading SingleR UMAP Cell type plot PNG -----
-  output$downloadPlotPNG_umapcelltype <- func_save_png(titlepng = "SingleR_UMAP_cell_type_", img = vals$umapcelltype, width = input$width_png_umapcelltype, 
-                                                       height = input$height_png_umapcelltype, res = input$resolution_PNG_umapcelltype)
-  
-  # ============================================================================. Find doublets
-  # BD provided doublet rates with different cell load numbers
-  rhapsody_doublet_rate <- data.frame(
-    "cell_num" = c(100,500,1000*(1:20)), 
-    "rate" = c(0, 0.1, 0.2, 0.5, 0.7, 1, 
-               1.2, 1.4, 1.7, 1.9, 2.1, 
-               2.4, 2.6, 2.8, 3.1, 3.3, 
-               3.5, 3.8, 4, 4.2, 4.5 , 4.7))
-  
-  # Build a linear model to calculate theoretical doublet rate
-  model_rhap <- lm(rate ~ cell_num, 
-                   rhapsody_doublet_rate)
-  # Run find doublets func
-  subset_demo_seurat1 <- reactive({
-    subset_demo_seurat1 <- func_get_doublets(subset_demo_seurat(),
-                                             pc = 1:15)
-  })
-  output$rhapsodydoublet <- renderPlotly({
-    # Visualize the result
-    p_cell_3 <- DimPlot(subset_demo_seurat1(), 
-                        group.by = "doublet_check") + 
-      ggtitle("Doublet Check Plot")
-    vals$doublet <- p_cell_3
-  })
-  # downloading doublet rates plot PNG -----
-  output$downloadPlotPNG_doublet <- func_save_png(titlepng = "Doublet_Check_plot_", img = vals$doublet, width = input$width_png_doublet, 
-                                                  height = input$height_png_doublet, res = input$resolution_PNG_doublet)
-  
-  # ============================================================================. Finding marker genes
-  output$rhapsodymarkergenes <- renderPlotly({
-    # use function to get marker genes
-    subset_demo1_DGEs <- func_get_marker_genes(subset_demo_seurat1(),
-                                               p_adj_cutoff = 0.05,
-                                               log2FC_cutoff = 1,
-                                               view_top_X_genes = 5) 
-    
-    # visualise top genes on dotplot
-    p_cell_4 <- DotPlot(subset_demo_seurat1(), 
-                        features = subset_demo1_DGEs$top_cell_gene, 
-                        group.by = "cell_type") + 
-      coord_flip() +
-      RotatedAxis() +
-      ggtitle("Marker Genes plot")
-    vals$markergenes <- p_cell_4
-  })
-  # downloading Marker Genes plot PNG -----
-  output$downloadPlotPNG_markergenes <- func_save_png(titlepng = "Marker_Genes_plot_", img = vals$markergenes, width = input$width_png_markergenes, 
-                                                      height = input$height_png_markergenes, res = input$resolution_PNG_markergenes)
-  
-  # ============================================================================. Pseudotime Analysis
-  subset_demo_slingshot_1 <- reactive({
-    # use function to get results
-    subset_demo_slingshot_1 <- func_slingshot(subset_demo_seurat1())
-  })
-  # ++++++++++++++++++++++ Pseudotime
-  output$rhapsodypseudotimelineage <- renderPlot({
-    
-    subset_demo_seurat_1 <- subset_demo_seurat1()
-    
-    pt_lineages <- slingshot::slingPseudotime(subset_demo_slingshot_1())
-    
-    # add Slingshot results to the input Seurat object
-    lineages <- sapply(slingLineages(colData(subset_demo_slingshot_1())$slingshot), 
-                       paste, 
-                       collapse = " -> ")
-    
-    subset_demo_seurat_1@meta.data[lineages] <- pt_lineages
-    # visualization
-    
-    # display every lineage pseudotime
-    name_lineage <- colnames(subset_demo_seurat_1@meta.data)[grepl("->",
-                                                                   colnames(subset_demo_seurat_1@meta.data))]
-    
-    p_ss_1 <- list()
-    
-    Idents(subset_demo_seurat_1) <- "smk"
-    
-    for (i in name_lineage) {
+    # filter out cells with MT genes percentage > 50 (%) and 
+    # cells with low nFeature_RNA
+    subset_demo_seurat <- reactive({
+      subset_demo_seurat <- subset(demo_seurat(), 
+                                   subset = percent.mt < input$sliderrhapsodymtgene & 
+                                     nFeature_RNA > input$sliderrhapsodyfeatures, 
+                                   invert = F)
+      subset_demo_seurat <- func_quick_process(subset_demo_seurat)
+      subset_demo_seurat <- func_get_annotation(subset_demo_seurat)
+    })
+    # =============================. QC plots – check mitochondrial gene percentages
+    output$rhapsodymtgene <- renderPlotly({
       
-      p_ss_1[[i]] <- Seurat::FeaturePlot(subset(subset_demo_seurat_1, 
-                                                idents = c("SampleTag01_hs", 
-                                                           "SampleTag02_hs")),  
-                                         features = i, split.by = "smk") & 
-        theme(legend.position="top") &
-        scale_color_viridis_c() 
-    }
-    
-    wrap_plots(p_ss_1, 
-               ncol = 1)
-  })
-  
-  output$rhapsodypseudotimesampletag <- renderPlot({
-    subset_demo_seurat_1 <- subset_demo_seurat1()
-    
-    pt_lineages <- slingshot::slingPseudotime(subset_demo_slingshot_1())
-    
-    # add Slingshot results to the input Seurat object
-    lineages <- sapply(slingLineages(colData(subset_demo_slingshot_1())$slingshot), 
-                       paste, 
-                       collapse = " -> ")
-    
-    subset_demo_seurat_1@meta.data[lineages] <- pt_lineages
-    
-    # display every lineage pseudotime
-    name_lineage <- colnames(subset_demo_seurat_1@meta.data)[grepl("->",
-                                                                   colnames(subset_demo_seurat_1@meta.data))]
-    
-    p_ss_celltype <- list()
-    
-    Idents(subset_demo_seurat_1) <- "smk"
-    
-    for (i in name_lineage) {
+      p <- Seurat::VlnPlot(demo_seurat(), 
+                           features = "percent.mt", 
+                           group.by = "seurat_clusters") + 
+        Seurat::NoLegend() + 
+        ggtitle("MT Gene %")
+      p
+      vals$mtgene <- p
+    })
+    output$rhapsodymtgenefilter <- renderPlotly({
       
-      p_ss_celltype[[i]] <- ggplot(subset(subset_demo_seurat_1, 
-                                          idents = c("Multiplet", 
-                                                     "Undetermined"), 
-                                          invert = T)@meta.data, 
-                                   aes(x = .data[[i]], 
-                                       y = cell_type, 
-                                       colour = cell_type)) +
-        geom_point() +
-        geom_jitter(width = 0.1, 
-                    height = 0.2) +
-        theme_gray() +
-        theme(legend.position = "none") +
-        facet_grid(. ~ smk )
-    }
+      p2 <- Seurat::VlnPlot(subset_demo_seurat(), 
+                            features = "percent.mt", 
+                            group.by = "seurat_clusters") + 
+        Seurat::NoLegend() + 
+        ggtitle("MT Gene % After Filter")
+      p2
+      
+      vals$mtgenefilter <- p2
+    })
+    # downloading QC plots – check mitochondrial gene percentages PNG -----
+    # downloading QC plots – check mitochondrial gene percentages PNG -----
+    output$downloadPlotPNG_mtgene <- func_save_png(titlepng = "MT_Gene_%_", img = vals$mtgene, width = input$width_png_mtgene, 
+                                                   height = input$height_png_mtgene, res = input$resolution_PNG_mtgene)
+    # downloading QC plots – check mitochondrial gene percentages after filtering PNG -----
+    output$downloadPlotPNG_mtgenefilter <- func_save_png(titlepng = "MT_Gene_%_After_Filter_", img = vals$mtgenefilter, width = input$width_png_mtgenefilter, 
+                                                         height = input$height_png_mtgenefilter, res = input$resolution_PNG_mtgenefilter)
     
-    wrap_plots(p_ss_celltype, 
-               ncol = 2)
-  })
+    # =================================. Feature Scatter 
+    output$rhapsodyfeaturescatter <- renderPlotly({
+      p3 <- Seurat::FeatureScatter(demo_seurat(), 
+                                   feature1 = "nCount_RNA", 
+                                   feature2 = "nFeature_RNA", 
+                                   group.by = "seurat_clusters") + 
+        scale_x_log10() +
+        scale_y_log10() +
+        ggtitle("Feature Scatter plot")
+      
+      p3
+      vals$featurescatter <- p3
+    })
+    
+    output$rhapsodyfeaturescatterfilter <- renderPlotly({
+      p4 <- Seurat::FeatureScatter(subset_demo_seurat(), 
+                                   feature1 = "nCount_RNA", 
+                                   feature2 = "nFeature_RNA", 
+                                   group.by = "seurat_clusters") + 
+        scale_x_log10() +
+        scale_y_log10() +
+        ggtitle("Feature Scatter plot After Filter")
+      
+      p4
+      vals$featurescatterfilter <- p4
+    })
+    # downloading Feature Scatter plot PNG -----
+    output$downloadPlotPNG_featurescatter <- func_save_png(titlepng = "Feature_Scatter_plot_", img = vals$featurescatter, width = input$width_png_featurescatter, 
+                                                           height = input$height_png_featurescatter, res = input$resolution_PNG_featurescatter)
+    # downloading Feature Scatter after filtering plot PNG -----
+    output$downloadPlotPNG_featurescatterfilter <- func_save_png(titlepng = "Feature_Scatter_plot_", img = vals$featurescatterfilter, width = input$width_png_featurescatterfilter, 
+                                                                 height = input$height_png_featurescatterfilter, res = input$resolution_PNG_featurescatterfilter)
+    
+    # ===================================. clustering plots
+    output$rhapsodyumap <- renderPlotly({
+      p5 <- Seurat::DimPlot(subset_demo_seurat(), 
+                            reduction = "umap", 
+                            group.by = "seurat_clusters") + 
+        ggtitle("UMAP Plot")
+      vals$umap <- p5
+    })
+    # downloading Rhapsody Umap plot PNG -----
+    output$downloadPlotPNG_umap <- func_save_png(titlepng = "Umap_plot_", img = vals$umap, width = input$width_png_umap, 
+                                                 height = input$height_png_umap, res = input$resolution_PNG_umap)
+    output$rhapsodytsne <- renderPlotly({
+      p6 <- Seurat::DimPlot(subset_demo_seurat(), 
+                            reduction = "tsne", 
+                            group.by = "seurat_clusters") + 
+        ggtitle("TSNE Plot")
+      vals$tsne <- p6
+    })
+    # downloading Rhapsody TSNE plot PNG -----
+    output$downloadPlotPNG_tsne <- func_save_png(titlepng = "Tsne_plot_", img = vals$tsne, width = input$width_png_tsne, 
+                                                 height = input$height_png_tsne, res = input$resolution_PNG_tsne)
+    
+    output$rhapsodypca <- renderPlotly({
+      p7 <- Seurat::DimPlot(subset_demo_seurat(), 
+                            reduction = "pca", 
+                            group.by = "seurat_clusters") + 
+        ggtitle("PCA Plot")
+      vals$rhapsodypca <- p7
+    })
+    # downloading Rhapsody PCA plot PNG -----
+    output$downloadPlotPNG_ypca <- func_save_png(titlepng = "PCA_plot_", img = vals$rhapsodypca, width = input$width_png_ypca, 
+                                                 height = input$height_png_ypca, res = input$resolution_PNG_ypca)
+    
+    # ============================================================================. SingleR plots
+    output$rhapsodyplotScoreHeatmap <- renderPlot({
+      subset_demo_seurat <- subset_demo_seurat()
+      p_cell_1 <- plotScoreHeatmap(subset_demo_seurat@misc$SingleR_results,
+                                   show_colnames = F)
+      p_cell_1
+      vals$plotScoreHeatmap <- p_cell_1
+    })
+    # downloading SingleR plotScoreHeatmap plot PNG -----
+    output$downloadPlotPNG_plotScoreHeatmap <- func_save_png(titlepng = "SingleR_plotScoreHeatmap_", img = vals$plotScoreHeatmap, width = input$width_png_plotScoreHeatmap, 
+                                                             height = input$height_png_plotScoreHeatmap, res = input$resolution_PNG_plotScoreHeatmap)
+    
+    output$rhapsodyumapcelltype <- renderPlotly({
+      # Display cells in UMAP plot
+      p_cell_2 <- Seurat::DimPlot(subset_demo_seurat(),
+                                  group.by = "cell_type") +
+        ggtitle("SINGLER UMAP CELL TYPE")
+      vals$umapcelltype <- p_cell_2
+    })
+    # downloading SingleR UMAP Cell type plot PNG -----
+    output$downloadPlotPNG_umapcelltype <- func_save_png(titlepng = "SingleR_UMAP_cell_type_", img = vals$umapcelltype, width = input$width_png_umapcelltype, 
+                                                         height = input$height_png_umapcelltype, res = input$resolution_PNG_umapcelltype)
+    
+    # ============================================================================. Find doublets
+    # BD provided doublet rates with different cell load numbers
+    rhapsody_doublet_rate <- data.frame(
+      "cell_num" = c(100,500,1000*(1:20)), 
+      "rate" = c(0, 0.1, 0.2, 0.5, 0.7, 1, 
+                 1.2, 1.4, 1.7, 1.9, 2.1, 
+                 2.4, 2.6, 2.8, 3.1, 3.3, 
+                 3.5, 3.8, 4, 4.2, 4.5 , 4.7))
+    
+    # Build a linear model to calculate theoretical doublet rate
+    model_rhap <- lm(rate ~ cell_num, 
+                     rhapsody_doublet_rate)
+    # Run find doublets func
+    subset_demo_seurat1 <- reactive({
+      subset_demo_seurat1 <- func_get_doublets(subset_demo_seurat(),
+                                               pc = 1:15)
+    })
+    output$rhapsodydoublet <- renderPlotly({
+      # Visualize the result
+      p_cell_3 <- DimPlot(subset_demo_seurat1(), 
+                          group.by = "doublet_check") + 
+        ggtitle("Doublet Check Plot")
+      vals$doublet <- p_cell_3
+    })
+    # downloading doublet rates plot PNG -----
+    output$downloadPlotPNG_doublet <- func_save_png(titlepng = "Doublet_Check_plot_", img = vals$doublet, width = input$width_png_doublet, 
+                                                    height = input$height_png_doublet, res = input$resolution_PNG_doublet)
+    
+    # ============================================================================. Finding marker genes
+    output$rhapsodymarkergenes <- renderPlotly({
+      # use function to get marker genes
+      subset_demo1_DGEs <- func_get_marker_genes(subset_demo_seurat1(),
+                                                 p_adj_cutoff = 0.05,
+                                                 log2FC_cutoff = 1,
+                                                 view_top_X_genes = 5) 
+      
+      # visualise top genes on dotplot
+      p_cell_4 <- DotPlot(subset_demo_seurat1(), 
+                          features = subset_demo1_DGEs$top_cell_gene, 
+                          group.by = "cell_type") + 
+        coord_flip() +
+        RotatedAxis() +
+        ggtitle("Marker Genes plot")
+      vals$markergenes <- p_cell_4
+    })
+    # downloading Marker Genes plot PNG -----
+    output$downloadPlotPNG_markergenes <- func_save_png(titlepng = "Marker_Genes_plot_", img = vals$markergenes, width = input$width_png_markergenes, 
+                                                        height = input$height_png_markergenes, res = input$resolution_PNG_markergenes)
+    
+    # ============================================================================. Pseudotime Analysis
+    subset_demo_slingshot_1 <- reactive({
+      # use function to get results
+      subset_demo_slingshot_1 <- func_slingshot(subset_demo_seurat1())
+    })
+    # ++++++++++++++++++++++ Pseudotime
+    output$rhapsodypseudotimelineage <- renderPlot({
+      
+      subset_demo_seurat_1 <- subset_demo_seurat1()
+      
+      pt_lineages <- slingshot::slingPseudotime(subset_demo_slingshot_1())
+      
+      # add Slingshot results to the input Seurat object
+      lineages <- sapply(slingLineages(colData(subset_demo_slingshot_1())$slingshot), 
+                         paste, 
+                         collapse = " -> ")
+      
+      subset_demo_seurat_1@meta.data[lineages] <- pt_lineages
+      # visualization
+      
+      # display every lineage pseudotime
+      name_lineage <- colnames(subset_demo_seurat_1@meta.data)[grepl("->",
+                                                                     colnames(subset_demo_seurat_1@meta.data))]
+      
+      p_ss_1 <- list()
+      
+      Idents(subset_demo_seurat_1) <- "smk"
+      
+      for (i in name_lineage) {
+        
+        p_ss_1[[i]] <- Seurat::FeaturePlot(subset(subset_demo_seurat_1, 
+                                                  idents = c("SampleTag01_hs", 
+                                                             "SampleTag02_hs")),  
+                                           features = i, split.by = "smk") & 
+          theme(legend.position="top") &
+          scale_color_viridis_c() 
+      }
+      
+      vals$pseudotimelineage <- wrap_plots(p_ss_1, 
+                                           ncol = 1)
+      
+      wrap_plots(p_ss_1, 
+                 ncol = 1)
+    })
+    # downloading Pseudotime lineage plot PNG -----
+    output$downloadPlotPNG_pseudotimelineage <- func_save_png(titlepng = "Pseudotime_lineage_plot_", img = vals$pseudotimelineage, width = input$width_png_pseudotimelineage, 
+                                                              height = input$height_png_pseudotimelineage, res = input$resolution_PNG_pseudotimelineage)
+    
+    output$rhapsodypseudotimesampletag <- renderPlot({
+      subset_demo_seurat_1 <- subset_demo_seurat1()
+      
+      pt_lineages <- slingshot::slingPseudotime(subset_demo_slingshot_1())
+      
+      # add Slingshot results to the input Seurat object
+      lineages <- sapply(slingLineages(colData(subset_demo_slingshot_1())$slingshot), 
+                         paste, 
+                         collapse = " -> ")
+      
+      subset_demo_seurat_1@meta.data[lineages] <- pt_lineages
+      
+      # display every lineage pseudotime
+      name_lineage <- colnames(subset_demo_seurat_1@meta.data)[grepl("->",
+                                                                     colnames(subset_demo_seurat_1@meta.data))]
+      
+      p_ss_celltype <- list()
+      
+      Idents(subset_demo_seurat_1) <- "smk"
+      
+      for (i in name_lineage) {
+        
+        p_ss_celltype[[i]] <- ggplot(subset(subset_demo_seurat_1, 
+                                            idents = c("Multiplet", 
+                                                       "Undetermined"), 
+                                            invert = T)@meta.data, 
+                                     aes(x = .data[[i]], 
+                                         y = cell_type, 
+                                         colour = cell_type)) +
+          geom_point() +
+          geom_jitter(width = 0.1, 
+                      height = 0.2) +
+          theme_gray() +
+          theme(legend.position = "none") +
+          facet_grid(. ~ smk )
+      }
+      
+      vals$pseudotimesampletag <- wrap_plots(p_ss_celltype, 
+                                             ncol = 2)
+      
+      wrap_plots(p_ss_celltype, 
+                 ncol = 2)
+    })
+    # downloading Pseudotime Sample tag plot PNG -----
+    output$downloadPlotPNG_pseudotimesampletag <- func_save_png(titlepng = "Pseudotime_lineage_plot_", img = vals$pseudotimesampletag, width = input$width_png_pseudotimesampletag, 
+                                                                height = input$height_png_pseudotimesampletag, res = input$resolution_PNG_pseudotimesampletag)
+    
+  }) # submitrhapsody 
   ## =======================================================================================. End Server =========================================================================================================#
   # This are for the server close
 })
