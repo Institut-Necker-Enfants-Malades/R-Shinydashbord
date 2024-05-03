@@ -523,11 +523,7 @@ dashbody <- dashboardBody(
                              hr(style="border-color: blue;"),
                              selectInput("diffenrich", "Choose a database:", choices = dbs$libraryName, selected = 'GO_Biological_Process_2023'),
                              actionButton('diffsubmit', strong('Submit Enrichment'))
-                             # Placeholder for input selection
-                             # fluidRow(
-                             #   column(6, selectInput(inputId='Vartoplotdiff',label = 'Waiting for data plot',choices = NULL )),
-                             #   column(6, checkboxGroupInput(inputId='Vardatabasediff',label = 'Choose database',choices = NULL ))
-                             # )
+                             
                 ),
                 mainPanel( width = 9,
                            tabsetPanel(
@@ -546,7 +542,6 @@ dashbody <- dashboardBody(
                              ),
                              tabPanel(title='Data Table with links',
                                       #Placeholder for plot
-                                      #selectInput("species", label = "Select relevant species",species,selected = "HUMAN"),
                                       h2("Data table with database links:"),
                                       div(DT::dataTableOutput(outputId = 'summarytable')),
                                       
@@ -593,7 +588,6 @@ dashbody <- dashboardBody(
           ),
           mainPanel(tabsetPanel(
             tabPanel(title = 'Enrichment',
-                     #  verbatimTextOutput("results"),
                      DT::dataTableOutput(outputId = 'thetableenrich'),
             ),
             tabPanel(title = 'Plot',
